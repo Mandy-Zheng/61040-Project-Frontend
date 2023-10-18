@@ -7,6 +7,14 @@ export const useResumeStore = defineStore(
   "resume",
   () => {
     const currentUserResumes = ref<Array<Record<string, any>>>([]);
+    const editingResume = ref<string>("");
+
+    const selectResumeToEdit = (field: string) => {
+      editingResume.value = field;
+    };
+    const resetStore = async () => {
+      await getResumes();
+    };
 
     const getResumes = async () => {
       try {
@@ -18,32 +26,33 @@ export const useResumeStore = defineStore(
     };
 
     const createResume = async (update: BodyT) => {
-      try {
-        await fetchy(`api/resume`, "POST", { body: update });
-      } catch (_) {
-        return;
-      }
+      await fetchy(`/api/resume`, "POST", { body: update });
     };
 
     const editResume = async (field: string, patch: BodyT) => {
-      console.log("hi");
       const resumes = currentUserResumes.value.filter((resume) => resume.resume.field === field);
-      console.log(currentUserResumes.value, field);
       if (resumes.length === 0) {
         return;
       }
       const body = { update: patch, id: resumes[0].resume._id };
-      console.log(body);
-      await fetchy("api/resume", "PATCH", {
+      await fetchy("/api/resume", "PATCH", {
         body: body,
       });
     };
 
+    const deleteResume = async (id: string) => {
+      await fetchy(`/api/resume/${id}`, "DELETE");
+      await resetStore();
+    };
+
     return {
       currentUserResumes,
+      editingResume,
       getResumes,
       createResume,
       editResume,
+      selectResumeToEdit,
+      deleteResume,
     };
   },
   { persist: true },

@@ -6,6 +6,7 @@ import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
 import ProfileView from "../views/ProfileView.vue";
+import SearchView from "../views/SearchView.vue";
 import SettingView from "../views/SettingView.vue";
 const router = createRouter({
   history: createWebHistory(),
@@ -44,6 +45,20 @@ const router = createRouter({
       name: "createResumeForm",
       component: CreateResumeForm,
       props: { field: "New" },
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/editResume",
+      name: "editResume",
+      props: true,
+      component: CreateResumeForm,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/searchProfiles",
+      name: "profileSearch",
+      component: SearchView,
+      props: { category: "Resumes" },
       meta: { requiresAuth: true },
     },
     {

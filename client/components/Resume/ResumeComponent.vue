@@ -1,25 +1,37 @@
 <script setup lang="ts">
+import router from "@/router";
+import { useResumeStore } from "@/stores/resume";
 import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
-import { capitalize, capitalizePhrase } from "../../../server/framework/utils";
+import { capitalize } from "../../../server/framework/utils";
 
-const props = defineProps(["rating", "resume", "canEdit"]);
+const props = defineProps(["rating", "resume", "canEdit", "author"]);
 const { currentUserId } = storeToRefs(useUserStore());
+const resumeStore = useResumeStore();
+const { deleteResume, selectResumeToEdit } = resumeStore;
+async function editResume() {
+  selectResumeToEdit(props.resume.field);
+  await router.push({ name: "editResume" });
+}
 </script>
 
 <template>
   <div class="resume">
     <div class="header">
-      <div class="field">
-        <h3>{{ capitalize(props.resume.field) }}</h3>
-        <div class="pill">Rating: {{ props.rating }}</div>
+      <div class="resumeheader">
+        <div class="field">
+          <h3>{{ capitalize(props.resume.field) }}</h3>
+          <div class="pill">Rating: {{ props.rating }}</div>
+        </div>
+        <div>
+          <menu v-if="props.resume.author === currentUserId">
+            <button class="edit-btn" @click="editResume" role="link">Edit</button>
+
+            <button class="edit-btn" @click="deleteResume(props.resume._id)">Delete</button>
+          </menu>
+        </div>
       </div>
-      <div>
-        <menu v-if="props.resume.author === currentUserId">
-          <button class="edit-btn">Edit</button>
-          <button class="edit-btn">Delete</button>
-        </menu>
-      </div>
+      <p class="author">Author: {{ props.author }}</p>
     </div>
     <div class="content">
       <!-- TODO -->
@@ -27,13 +39,13 @@ const { currentUserId } = storeToRefs(useUserStore());
         <div v-if="props.resume.work.length > 0">
           <div class="section"><b>Work</b></div>
           <div v-for="work in props.resume.work" :key="work">
-            <p>{{ capitalize(work) }}</p>
+            <p>{{ work }}</p>
           </div>
         </div>
         <div v-if="props.resume.school.length > 0">
           <div class="section"><b>School</b></div>
           <div v-for="school in props.resume.school" :key="school">
-            <p>{{ capitalizePhrase(school) }}</p>
+            <p>{{ school }}</p>
           </div>
         </div>
       </div>
@@ -54,20 +66,26 @@ const { currentUserId } = storeToRefs(useUserStore());
   padding-right: 8px;
 }
 
+.resumeheader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
 .header {
+  flex-direction: column;
   background-color: burlywood;
   width: 100%;
   display: flex;
   flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
 }
-.field {
+.field,
+.author {
   padding-left: 8px;
   display: flex;
   flex-wrap: wrap;
+  margin: 0px;
 }
 
 .content {

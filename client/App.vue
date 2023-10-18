@@ -4,7 +4,6 @@ import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
 import { computed, onBeforeMount } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
-
 const currentRoute = useRoute();
 const currentRouteName = computed(() => currentRoute.name);
 const userStore = useUserStore();
@@ -34,9 +33,6 @@ onBeforeMount(async () => {
           <RouterLink :to="{ name: 'Home' }" :class="{ underline: currentRouteName == 'Home' }"> Home </RouterLink>
         </li>
         <li v-if="isLoggedIn">
-          <RouterLink :to="{ name: 'Profile' }" :class="{ underline: currentRouteName == 'Profile' }"> Profile </RouterLink>
-        </li>
-        <li v-if="isLoggedIn">
           <RouterLink :to="{ name: 'Settings' }" :class="{ underline: currentRouteName == 'Settings' }"> Settings </RouterLink>
         </li>
         <li v-else>
@@ -48,14 +44,43 @@ onBeforeMount(async () => {
       <p>{{ toast.message }}</p>
     </article>
   </header>
-  <RouterView />
+  <div class="content" v-if="isLoggedIn">
+    <div class="sidenavbar">
+      <div class="sidebarlinks">
+        <h3>My Items</h3>
+        <RouterLink :to="{ name: 'Profile' }" :class="{ underline: currentRouteName == 'Profile' }">My Profile </RouterLink>
+        <!-- <div>My Posts</div>
+        <div>My Annotations</div>
+        <div>My Course Maps</div> -->
+
+        <h3>Search</h3>
+        <div>
+          <RouterLink :to="{ name: 'profileSearch' }" :class="{ underline: currentRouteName == 'User Profiles' }"> User Profiles </RouterLink>
+          <!-- <div>Find Posts</div>
+          <div>Find Course Maps</div> -->
+        </div>
+      </div>
+      <!-- <RouterLink :to="{ name: 'Home' }" :class="{ underline: currentRouteName == 'Home' }"> Home </RouterLink>
+
+      <RouterLink :to="{ name: 'Profile' }" :class="{ underline: currentRouteName == 'Profile' }"> Profile </RouterLink>
+
+      <RouterLink :to="{ name: 'Settings' }" :class="{ underline: currentRouteName == 'Settings' }"> Settings </RouterLink>
+
+      <RouterLink :to="{ name: 'Login' }" :class="{ underline: currentRouteName == 'Login' }"> Login </RouterLink> -->
+    </div>
+    <div class="middle">
+      <RouterView />
+    </div>
+  </div>
+  <div v-else>
+    <RouterView />
+  </div>
 </template>
 
 <style scoped>
 @import "./assets/toast.css";
 
 nav {
-  padding: 1em 2em;
   background-color: lightgray;
   display: flex;
   align-items: center;
@@ -93,5 +118,41 @@ ul {
 
 .underline {
   text-decoration: underline;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.sidenavbar {
+  flex: 0 2 150px;
+  background-color: #c28282;
+  min-height: 100vh;
+}
+.sidebarlinks {
+  position: sticky;
+  top: 0px;
+}
+.middle {
+  flex: 1 1 300px;
+  min-height: 100vh;
+}
+.content {
+  display: flex;
+  flex: 1;
+}
+
+.sidenavbar {
+  padding-top: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 25%;
+}
+
+.page {
+  width: 50%;
 }
 </style>

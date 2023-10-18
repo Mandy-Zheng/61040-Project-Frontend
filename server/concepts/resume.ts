@@ -15,7 +15,7 @@ export default class ResumeConcept {
 
   async create(author: ObjectId, work: Array<string>, school: Array<string>, field: string) {
     if (!field || !work || !school) {
-      throw new BadValuesError("jobTitle, field, work, and school can't be undefined for resume");
+      throw new BadValuesError("Field, work, and school can't be undefined for resume");
     }
     const initialRating = work.length + 0.5 * school.length;
     const _id = await this.resumes.createOne({ author, field, work, school, initialRating });

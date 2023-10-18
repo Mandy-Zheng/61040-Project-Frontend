@@ -101,7 +101,6 @@ class Routes {
    */
   @Router.post("/resume")
   async createResume(session: WebSessionDoc, work: Array<string>, school: Array<string>, field: string) {
-    console.log(work, school, field);
     const user = WebSession.getUser(session);
     const existingResumes = await Resume.getByAuthor(user);
     const isResumeExists = existingResumes.some((res) => res.field === field);
@@ -124,7 +123,41 @@ class Routes {
       return { rating: calculateRating(res.initialRating, validations[index]), resume: res };
     });
   }
+  @Router.get("/resume/filter")
+  async getResumeByFilter(session: WebSessionDoc, username?: string, field?: string, minimumRating?: number) {
+    WebSession.getUser(session);
+    let resumes: ResumeDoc[] = [];
+    if (username) {
+      const user = await User.getUserByUsername(username);
+      resumes = await Resume.getByAuthor(user._id);
+      if (resumes.length === 0) {
+        return [];
+      }
+    }
 
+    if (field && field.length > 0) {
+      resumes = resumes.length > 0 ? resumes : await Resume.getByField(field);
+      resumes = resumes.filter((resume) => resume.field === field);
+      if (resumes.length === 0) {
+        return [];
+      }
+    }
+    resumes = resumes.length > 0 ? resumes : await Resume.getByAuthor();
+    const relatedResumeIds = resumes.map((res) => res._id);
+    const validations = await ValidationResume.getValidationOfObjectIds(relatedResumeIds.map((id) => id.toString()));
+    const usernames = await User.idsToUsernames(resumes.map((res) => res.author));
+    const userResume = usernames.map((user, index) => {
+      return { author: user, rating: calculateRating(resumes[index].initialRating, validations[index]), resume: resumes[index], validation: validations[index] };
+    });
+    if (minimumRating) {
+      if (isNaN(Number(minimumRating))) {
+        throw new BadValuesError("Expected a number for minimum rating");
+      }
+      return userResume.filter((userInfo) => userInfo.rating >= Number(minimumRating));
+    } else {
+      return userResume;
+    }
+  }
   /**
    *
    * @param session session
@@ -138,7 +171,7 @@ class Routes {
     const resume = await Resume.getByAuthor(userAccount._id);
     const validation = await ValidationResume.getValidationOfObjectIds(resume.map((res) => res._id.toString()));
     return resume.map((res, idx) => {
-      return { rating: calculateRating(res.initialRating, validation[idx]), resume: resume[idx] };
+      return { rating: calculateRating(res.initialRating, validation[idx]), resume: resume[idx], validation: validation[idx], author: username };
     });
   }
 
@@ -169,29 +202,6 @@ class Routes {
     const msg = await Resume.delete(id, user);
     await ValidationResume.delete(id.toString());
     return msg;
-  }
-
-  /**
-   *
-   * @param session session
-   * @param fielda field (no quotes) e.g. biology
-   * @param minimumRating number e.g 3.4
-   * @returns get users with their resumes if their resume ratings are higher than minimumRating and field is field
-   */
-  @Router.get("/resume/experts/:field/:minimumRating")
-  async getExperts(session: WebSessionDoc, field: string, minimumRating: number) {
-    WebSession.getUser(session);
-    if (isNaN(Number(minimumRating))) {
-      throw new BadValuesError("Expected a number for minimum rating");
-    }
-    const resumes = await Resume.getByField(field);
-    const relatedResumeIds = resumes.map((res) => res._id);
-    const netValidations = await ValidationResume.getValidationOfObjectIds(relatedResumeIds.map((id) => id.toString()));
-    const usernames = await User.idsToUsernames(resumes.map((res) => res.author));
-    const userResume = usernames.map((user, index) => {
-      return { user: user, rating: calculateRating(resumes[index].initialRating, netValidations[index]), resume: resumes[index] };
-    });
-    return userResume.filter((userInfo) => userInfo.rating >= Number(minimumRating));
   }
 
   // Validation[User, Resume]

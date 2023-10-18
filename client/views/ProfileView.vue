@@ -3,12 +3,17 @@ import ResumeComponent from "@/components/Resume/ResumeComponent.vue";
 import { useResumeStore } from "@/stores/resume";
 import { storeToRefs } from "pinia";
 import { computed, onBeforeMount } from "vue";
-
+import { capitalize } from "../../server/framework/utils";
 const resumeStore = useResumeStore();
 const { getResumes } = useResumeStore();
 const { currentUserResumes } = storeToRefs(resumeStore);
 const allResumeFields = computed(() => currentUserResumes.value.map((resume) => resume.resume.field));
 console.log(currentUserResumes.value);
+
+function scrollToResume(field: string) {
+  const resume = document.getElementById(field);
+  resume?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 onBeforeMount(async () => {
   try {
@@ -32,15 +37,15 @@ onBeforeMount(async () => {
         </div>
       </div>
       <div class="fields">
-        <div class="field-pill" v-for="field in allResumeFields" :key="field">
-          {{ field }}
+        <div class="field-pill" v-for="field in allResumeFields" :key="field" @click="scrollToResume(field)">
+          {{ capitalize(field) }}
         </div>
       </div>
     </div>
     <section>
       <section>
         <article v-for="resume in currentUserResumes" :key="resume._id">
-          <ResumeComponent :resume="resume.resume" :rating="resume.rating" :canEdit="true" :resumeFields="allResumeFields" />
+          <ResumeComponent :id="resume.resume.field" :resume="resume.resume" :rating="resume.rating" :canEdit="true" :author="resume.author" />
           <!-- <PostComponent v-if="editing !== post._id" :post="post" @refreshPosts="getPosts" @editPost="updateEditing" /> -->
           <!-- <==<EditPostForm v-else :post="post" @refreshPosts="getPosts" @editPost="updateEditing" /> -->
         </article>
@@ -86,6 +91,10 @@ h2 {
   padding: 4px;
   border-radius: 32px;
   margin: 8px 8px 4px 0px;
+  cursor: pointer;
+}
+.field-pill:hover {
+  background-color: #3b8ee2;
 }
 .add-btn {
   padding: 4px;
