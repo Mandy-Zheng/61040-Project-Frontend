@@ -2,10 +2,14 @@ import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
 import { createRouter, createWebHistory } from "vue-router";
 import CreateResumeForm from "../components/Resume/CreateResumeForm.vue";
+import CreateNewPostView from "../views/CreateNewPostView.vue";
+import DependencyMapView from "../views/DependencyMapView.vue";
 import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
+import MyAnnotationsView from "../views/MyAnnotationsView.vue";
+import MyResumesView from "../views/MyResumesView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
-import ProfileView from "../views/ProfileView.vue";
+import PostFeedView from "../views/PostFeedView.vue";
 import SearchView from "../views/SearchView.vue";
 import SettingView from "../views/SettingView.vue";
 const router = createRouter({
@@ -37,7 +41,7 @@ const router = createRouter({
     {
       path: "/profile",
       name: "Profile",
-      component: ProfileView,
+      component: MyResumesView,
       meta: { requiresAuth: true },
     },
     {
@@ -62,9 +66,41 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/depmaps",
+      name: "DependencyMaps",
+      component: DependencyMapView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/feed",
+      name: "PostFeed",
+      component: PostFeedView,
+      props: true,
+      meta: { requiresAuth: true },
+    },
+    // {
+    //   path: "/myposts",
+    //   name: "MyPosts",
+    //   component: MyPostsView,
+    //   meta: { requiresAuth: true },
+    // },
+    {
+      path: "/myannotations",
+      name: "MyAnnotations",
+      component: MyAnnotationsView,
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/:catchAll(.*)",
       name: "not-found",
       component: NotFoundView,
+    },
+    {
+      path: "/createPost",
+      name: "CreatePost",
+      props: true,
+      component: CreateNewPostView,
+      meta: { requiresAuth: true },
     },
   ],
 });

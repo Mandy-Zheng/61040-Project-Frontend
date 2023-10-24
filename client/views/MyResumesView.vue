@@ -5,19 +5,17 @@ import { storeToRefs } from "pinia";
 import { computed, onBeforeMount } from "vue";
 import { capitalize } from "../../server/framework/utils";
 const resumeStore = useResumeStore();
-const { getResumes } = useResumeStore();
-const { currentUserResumes } = storeToRefs(resumeStore);
+const { resetStore } = useResumeStore();
+const { currentUserResumes, userResumesValidations } = storeToRefs(resumeStore);
 const allResumeFields = computed(() => currentUserResumes.value.map((resume) => resume.resume.field));
-console.log(currentUserResumes.value);
 
 function scrollToResume(field: string) {
   const resume = document.getElementById(field);
   resume?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-
 onBeforeMount(async () => {
   try {
-    await getResumes();
+    await resetStore();
   } catch {
     // User is not logged in
   }
@@ -44,8 +42,16 @@ onBeforeMount(async () => {
     </div>
     <section>
       <section>
-        <article v-for="resume in currentUserResumes" :key="resume._id">
-          <ResumeComponent :id="resume.resume.field" :resume="resume.resume" :rating="resume.rating" :canEdit="true" :author="resume.author" />
+        <article v-for="(resume, index) in currentUserResumes" :key="resume._id">
+          <ResumeComponent
+            :id="resume.resume.field"
+            :resume="resume.resume"
+            :rating="userResumesValidations[index].rating"
+            :canEdit="true"
+            :author="resume.author"
+            :approvals="userResumesValidations[index].approvals"
+            :disapprovals="userResumesValidations[index].disapprovals"
+          />
           <!-- <PostComponent v-if="editing !== post._id" :post="post" @refreshPosts="getPosts" @editPost="updateEditing" /> -->
           <!-- <==<EditPostForm v-else :post="post" @refreshPosts="getPosts" @editPost="updateEditing" /> -->
         </article>

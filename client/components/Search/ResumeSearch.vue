@@ -7,11 +7,13 @@ const username = ref<string>("");
 const field = ref<string>("");
 const rating = ref<number>(0);
 const resumeResults = ref<Array<any>>([]);
+const validationResults = ref<Array<any>>([]);
 
 const searchResume = async () => {
   try {
     const query: Record<string, any> = { username: username.value, field: capitalizePhrase(field.value), minimumRating: rating.value };
     resumeResults.value = await fetchy(`/api/resume/filter`, "GET", { query });
+    validationResults.value = await Promise.all(resumeResults.value.map((resume) => fetchy(`/api/validation/resume/${resume.resume._id}`, "GET")));
   } catch (_) {
     return;
   }
@@ -35,28 +37,19 @@ const searchResume = async () => {
     <button type="submit" class="pure-button-primary pure-button search-btn" @click="searchResume">Search Resumes</button>
   </div>
 
-  <!-- <div class="title">
-        <h2>My Resumes</h2>
-        <div>
-          <router-link to="/createResumeForm" custom v-slot="{ navigate }">
-            <button @click="navigate" role="link" class="add-btn">Add</button>
-          </router-link>
-        </div>
-      </div> -->
   <div class="userresumes">
-    <div class="resumes" v-for="resume in resumeResults" :key="resume">
-      <ResumeComponent :id="resume.resume.field" :resume="resume.resume" :rating="resume.rating" :canEdit="false" :author="resume.author" />
+    <div class="resumes" v-for="(resume, index) in resumeResults" :key="resume">
+      <ResumeComponent
+        :id="resume.resume.field"
+        :resume="resume.resume"
+        :rating="validationResults[index].rating"
+        :canEdit="false"
+        :author="resume.author"
+        :approvals="validationResults[index].approvals"
+        :disapprovals="validationResults[index].disapprovals"
+      />
     </div>
   </div>
-  <!-- </div> -->
-  <!-- <section>
-      <section>
-        <article v-for="resume in currentUserResumes" :key="resume._id">
-          <ResumeComponent :id="resume.resume.field" :resume="resume.resume" :rating="resume.rating" :canEdit="true" :resumeFields="allResumeFields" />
-
-        </article>
-      </section>
-    </section> -->
 </template>
 
 <style scoped>

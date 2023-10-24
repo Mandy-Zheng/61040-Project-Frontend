@@ -27,7 +27,7 @@ export default class ExclusivePostConcept {
     if (post === null) {
       throw new NotFoundError(`Cannot Find Post with id: ${_id}`);
     } else {
-      if (!post.audience.includes(viewer.toString())) {
+      if (!post.audience.includes(viewer.toString()) && !post.audience.includes("")) {
         throw new NotAllowedError(`User ${viewer} has no access to Post ${_id}`);
       }
     }
@@ -47,7 +47,7 @@ export default class ExclusivePostConcept {
 
   async getAllViewable(viewer: string, author?: ObjectId) {
     const allPosts = author ? await this.exclusiveposts.readMany({ author }) : await this.exclusiveposts.readMany({});
-    return allPosts.filter((post) => post.audience.includes(viewer));
+    return allPosts.filter((post) => post.audience.includes(viewer) || post.audience.includes(""));
   }
 
   async filterValidPosts(postIds: ObjectId[]) {
@@ -57,7 +57,7 @@ export default class ExclusivePostConcept {
 
   async filterViewablePosts(allPostIds: ObjectId[], viewer: ObjectId) {
     const allPosts = await this.exclusiveposts.readMany({ _id: { $in: allPostIds } });
-    return allPosts.filter((post) => post.audience.includes(viewer.toString()));
+    return allPosts.filter((post) => post.audience.includes(viewer.toString()) || post.audience.includes(""));
   }
 
   async deleteFromAudience(viewer: string) {

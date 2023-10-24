@@ -22,7 +22,7 @@ onBeforeMount(async () => {
 
 <template>
   <header>
-    <nav>
+    <nav v-if="!isLoggedIn">
       <div class="title">
         <RouterLink :to="{ name: 'Home' }">
           <h3>MasterLink</h3>
@@ -30,12 +30,6 @@ onBeforeMount(async () => {
       </div>
       <ul>
         <li>
-          <RouterLink :to="{ name: 'Home' }" :class="{ underline: currentRouteName == 'Home' }"> Home </RouterLink>
-        </li>
-        <li v-if="isLoggedIn">
-          <RouterLink :to="{ name: 'Settings' }" :class="{ underline: currentRouteName == 'Settings' }"> Settings </RouterLink>
-        </li>
-        <li v-else>
           <RouterLink :to="{ name: 'Login' }" :class="{ underline: currentRouteName == 'Login' }"> Login </RouterLink>
         </li>
       </ul>
@@ -48,7 +42,12 @@ onBeforeMount(async () => {
     <div class="sidenavbar">
       <div class="sidebarlinks">
         <h3>My Items</h3>
-        <RouterLink :to="{ name: 'Profile' }" :class="{ underline: currentRouteName == 'Profile' }">My Profile </RouterLink>
+        <div>
+          <RouterLink :to="{ name: 'PostFeed' }" :class="{ underline: currentRouteName == 'PostFeed' }"> Posts </RouterLink> <br />
+          <RouterLink :to="{ name: 'Profile' }" :class="{ underline: currentRouteName == 'Profile' }">My Resumes </RouterLink> <br />
+          <RouterLink :to="{ name: 'MyAnnotations' }" :class="{ underline: currentRouteName == 'MyAnnotations' }">My Annotations </RouterLink><br />
+          <RouterLink :to="{ name: 'Settings' }" :class="{ underline: currentRouteName == 'Settings' }"> Settings </RouterLink><br />
+        </div>
         <!-- <div>My Posts</div>
         <div>My Annotations</div>
         <div>My Course Maps</div> -->
@@ -133,9 +132,11 @@ body {
 }
 .sidebarlinks {
   position: sticky;
+  flex-direction: column;
   top: 0px;
 }
 .middle {
+  margin-top: 4em;
   flex: 1 1 300px;
   min-height: 100vh;
 }

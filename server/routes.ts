@@ -3,8 +3,7 @@ import { Router, getExpressRouter } from "./framework/router";
 
 import { Annotation, DepMap, ExclusivePost, Resume, User, ValidationMap, ValidationPost, ValidationResume, WebSession } from "./app";
 import { AnnotationDoc } from "./concepts/annotation";
-import { DependencyMapDoc } from "./concepts/dependencymap";
-import { BadValuesError, NotAllowedError, NotFoundError } from "./concepts/errors";
+import { BadValuesError, NotFoundError } from "./concepts/errors";
 import { ResumeDoc } from "./concepts/resume";
 import { UserDoc } from "./concepts/user";
 import { ValidationDoc } from "./concepts/validation";
@@ -268,18 +267,24 @@ class Routes {
    * @param session session
    * @param title title of post e.g. Happiness
    * @param content content of post e.g Life is good
-   * @param audience Array of strings of usernames e.g. ["Amanda", "Flora"]
+   * @param audience Array of strings of usernames and empty string in the array means everybody e.g. ["Amanda", "Flora"]
    * @param tags Array of strings (subjects of post) e.g. ["life", "biology"]
    * @returns creates a post with title = title, content = content, audience = audience + user in session, and tags = tags
    */
   @Router.post("/exclusivepost")
   async createPost(session: WebSessionDoc, title: string, content: string, audience: Array<string>, tags: Array<string>) {
     const user = WebSession.getUser(session);
-    const username = (await User.getUserById(user)).username;
-    const uniqueAudience = new Set(audience.map((str) => str.trim()));
-    uniqueAudience.add(username);
-    const accounts = await Promise.all([...uniqueAudience].map((member) => User.getUserByUsername(member)));
-    const ids = accounts.map((member) => member._id.toString());
+    let ids = [];
+    if (audience.includes("")) {
+      ids = [""];
+    } else {
+      const username = (await User.getUserById(user)).username;
+      const uniqueAudience = new Set(audience.map((str) => str.trim()));
+      uniqueAudience.add(username);
+      const accounts = await Promise.all([...uniqueAudience].map((member) => User.getUserByUsername(member)));
+      ids = accounts.map((member) => member._id.toString());
+    }
+
     const parsedTags = tags.map((str) => str.trim());
     const post = await ExclusivePost.createPost(user, title, content, ids, parsedTags);
     if (post.post) {
@@ -306,30 +311,13 @@ class Routes {
         authorToResume.set(authors[index], resumes);
       }
     }
+    console.log(posts);
     return posts.map((post, index) => {
       const postRelatedResumes = authorToResume.get(authors[index]) ?? [];
       const ratings = postRelatedResumes.filter((res) => post.tags.includes(res.field)).map((res) => res.initialRating);
       const averageRating = postRelatedResumes.length === 0 || ratings.length === 0 ? 0 : ratings.reduce((partialSum, rate) => partialSum + rate, 0) / ratings.length;
       return { author: authors[index], rating: calculateRating(averageRating, validations[index]), post: post };
     });
-  }
-
-  /**
-   *
-   * @param session session
-   * @param id id of a post e.g. 652724ee4b6d1aec45545d0a
-   * @returns post if the user is allowed to view the post with id id
-   */
-  @Router.get("/exclusivepost/:id")
-  async getViewablePostById(session: WebSessionDoc, id: ObjectId) {
-    const user = WebSession.getUser(session);
-    const post = await ExclusivePost.getById(id, user);
-    const author = await User.getUserById(post.author);
-    const validation = (await ValidationPost.getValidationByObjectId(post._id.toString()))[0];
-    const resumes = await Resume.getByAuthor(user);
-    const ratings = resumes.filter((res) => post.tags.includes(res.field)).map((res) => res.initialRating);
-    const averageRating = resumes.length === 0 || ratings.length === 0 ? 0 : ratings.reduce((partialSum, rate) => partialSum + rate, 0) / ratings.length;
-    return { author: author.username, rating: calculateRating(averageRating, validation), post: post };
   }
 
   /**
@@ -357,6 +345,24 @@ class Routes {
         return { rating: calculateRating(averageRating, validation[index]), post: post };
       }),
     };
+  }
+
+  /**
+   *
+   * @param session session
+   * @param id id of a post e.g. 652724ee4b6d1aec45545d0a
+   * @returns post if the user is allowed to view the post with id id
+   */
+  @Router.get("/exclusivepost/:id")
+  async getViewablePostById(session: WebSessionDoc, id: ObjectId) {
+    const user = WebSession.getUser(session);
+    const post = await ExclusivePost.getById(id, user);
+    const author = await User.getUserById(post.author);
+    const validation = (await ValidationPost.getValidationByObjectId(post._id.toString()))[0];
+    const resumes = await Resume.getByAuthor(user);
+    const ratings = resumes.filter((res) => post.tags.includes(res.field)).map((res) => res.initialRating);
+    const averageRating = resumes.length === 0 || ratings.length === 0 ? 0 : ratings.reduce((partialSum, rate) => partialSum + rate, 0) / ratings.length;
+    return { author: author.username, rating: calculateRating(averageRating, validation), post: post };
   }
 
   /**
@@ -541,7 +547,19 @@ class Routes {
   async getMyAnnotations(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
     const notes = await Annotation.getByAuthor(user);
-    return notes;
+    const postIds = new Set(notes.map((note) => new ObjectId(note.original)));
+    const validIds = await ExclusivePost.filterValidPosts([...postIds]);
+    const validPostIdsSet = new Set(validIds.map((id) => id.toString()));
+    const validPostIds = [...validPostIdsSet].map((id) => new ObjectId(id));
+    const validPost = await Promise.all(validPostIds.map((id) => ExclusivePost.getById(id, user)));
+    const usernames = await User.idsToUsernames(validPost.map((post) => post.author));
+    const postToNotes = validPostIds.map((id, idx) => {
+      const postNotes = notes.filter((note) => note.original.toString() === id.toString());
+      return { post: { ...validPost[idx], author: usernames[idx] }, annotations: postNotes };
+    });
+
+    const deletedPostNotes = { post: null, annotations: notes.filter((note) => !validPostIdsSet.has(note.original.toString())) };
+    return [...postToNotes, deletedPostNotes];
   }
 
   /**
@@ -603,271 +621,271 @@ class Routes {
 
   // Dependency Map[User, ExclusivePost]
 
-  /**
-   *
-   * @param session session
-   * @param deps A json of key value pairs where keys are posts ids (prerequistes) and values are an Array of post ids (post requisites) e.g. {"652725144b6d1aec45545d0b": ["652724ee4b6d1aec45545d0a"], "652724ee4b6d1aec45545d0a": ["652725144b6d1aec45545d0c, 652725144b6d1aec45545d0d"]}
-   * @param tags  Array of strings (subjects of post) e.g. ["life", "biology"]
-   * @param title title of dependency map
-   * @returns a dependency map of posts where some posts are prerequisits of post
-   */
-  @Router.post("/depmap")
-  async createMap(session: WebSessionDoc, deps: Record<string, Array<string>>, tags: Array<string>, title: string) {
-    const user = WebSession.getUser(session);
-    try {
-      const keyIds = Object.keys(deps);
-      const valIds = Object.values(deps).reduce((accumulator, value) => accumulator.concat(value), []);
-      const allItems = [...new Set([...keyIds, ...valIds])];
-      await Promise.all(allItems.map((postId) => ExclusivePost.getById(new ObjectId(postId), user)));
-      const map = await DepMap.create(user, deps, tags, title);
-      if (map.depMap) {
-        await ValidationMap.create(map.depMap._id.toString());
-      }
-      return map;
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        throw new BadValuesError("postIds for dependency map not found");
-      } else if (e instanceof NotAllowedError) {
-        throw new BadValuesError("No access to view and link posts in map");
-      } else {
-        throw e;
-      }
-    }
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @param deps A json of key value pairs where keys are posts ids (prerequistes) and values are an Array of post ids (post requisites) e.g. {"652725144b6d1aec45545d0b": ["652724ee4b6d1aec45545d0a"], "652724ee4b6d1aec45545d0a": ["652725144b6d1aec45545d0c, 652725144b6d1aec45545d0d"]}
+  //    * @param tags  Array of strings (subjects of post) e.g. ["life", "biology"]
+  //    * @param title title of dependency map
+  //    * @returns a dependency map of posts where some posts are prerequisits of post
+  //    */
+  //   @Router.post("/depmap")
+  //   async createMap(session: WebSessionDoc, deps: Record<string, Array<string>>, tags: Array<string>, title: string) {
+  //     const user = WebSession.getUser(session);
+  //     try {
+  //       const keyIds = Object.keys(deps);
+  //       const valIds = Object.values(deps).reduce((accumulator, value) => accumulator.concat(value), []);
+  //       const allItems = [...new Set([...keyIds, ...valIds])];
+  //       await Promise.all(allItems.map((postId) => ExclusivePost.getById(new ObjectId(postId), user)));
+  //       const map = await DepMap.create(user, deps, tags, title);
+  //       if (map.depMap) {
+  //         await ValidationMap.create(map.depMap._id.toString());
+  //       }
+  //       return map;
+  //     } catch (e) {
+  //       if (e instanceof NotFoundError) {
+  //         throw new BadValuesError("postIds for dependency map not found");
+  //       } else if (e instanceof NotAllowedError) {
+  //         throw new BadValuesError("No access to view and link posts in map");
+  //       } else {
+  //         throw e;
+  //       }
+  //     }
+  //   }
 
-  @Router.get("/depmap")
-  async getAllMap(session: WebSessionDoc) {
-    WebSession.getUser(session);
-    const maps = await DepMap.getMapById();
-    const authors = await User.idsToUsernames(maps.map((map) => new ObjectId(map.author)));
-    return maps.map((map, idx) => {
-      return { author: authors[idx], map: map };
-    });
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @param topic a topic (no quotes) e.g. biology
+  //    * @returns all dependency maps with topic in their tags
+  //    */
+  //   @Router.get("/depmap/search/topics/:topic")
+  //   async getMapsByTopics(session: WebSessionDoc, topic: string) {
+  //     WebSession.getUser(session);
+  //     const maps = await DepMap.getMapById();
+  //     const relevantMaps = maps.filter((map) => map.tags.includes(topic));
+  //     const authors = await User.idsToUsernames(relevantMaps.map((map) => map.author));
+  //     return relevantMaps.map((map, idx) => {
+  //       return { author: authors[idx], map: map };
+  //     });
+  //   }
 
-  /**
-   *
-   * @param session session
-   * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
-   * @returns dependency map with id id
-   */
-  @Router.get("/depmap/:id")
-  async getMapById(session: WebSessionDoc, id: ObjectId) {
-    WebSession.getUser(session);
-    const map = await DepMap.getMapById(id);
-    const authors = await User.idsToUsernames(map.map((m) => new ObjectId(m.author)));
-    return map.map((m, idx) => {
-      return { author: authors[idx], map: m };
-    });
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @param postId id of a post e.g. 652724ee4b6d1aec45545d0a
+  //    * @returns all dependency maps where the postId is a postrequisite in the map
+  //    */
+  //   @Router.get("/depmap/postprerequisite/:postId")
+  //   async getPrerequisiteForPost(session: WebSessionDoc, postId: ObjectId) {
+  //     const user = WebSession.getUser(session);
+  //     if (!postId) {
+  //       throw new BadValuesError("Please provide a post id");
+  //     }
+  //     await ExclusivePost.getById(postId, user);
+  //     const maps = await DepMap.getMapById();
+  //     const prerequisite = maps.filter((map) => {
+  //       const vals = Object.values(map.deps).reduce((accumulator, value) => accumulator.concat(value), []);
+  //       return vals.includes(postId.toString());
+  //     });
+  //     return prerequisite;
+  //   }
 
-  /**
-   *
-   * @param session session
-   * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
-   * @param update.deps A json of key value pairs where keys are posts ids (prerequistes) and values are an Array of post ids (post requisites) e.g. {"652725144b6d1aec45545d0b": ["652724ee4b6d1aec45545d0a"], "652724ee4b6d1aec45545d0a": ["652725144b6d1aec45545d0c, 652725144b6d1aec45545d0d"]}
-   * @param update.tags  Array of strings (subjects of post) e.g. ["life", "biology"]
-   * @param update.title  title of dependency map
-   * @returns updates the dependency map with id id
-   */
-  @Router.patch("/depmap")
-  async updateMap(session: WebSessionDoc, id: ObjectId, update: Partial<DependencyMapDoc>) {
-    const user = WebSession.getUser(session);
-    try {
-      if (update.deps) {
-        const deps = update.deps;
-        const keyIds = Object.keys(deps);
-        const valIds = Object.values(deps).reduce((accumulator, value) => accumulator.concat(value), []);
-        const allItems = [...new Set([...keyIds, ...valIds])];
-        await Promise.all(allItems.map((postId) => ExclusivePost.getById(new ObjectId(postId), user)));
-      }
-      return await DepMap.update(id, user, update);
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        throw new BadValuesError("postIds for dependency map not found");
-      } else if (e instanceof NotAllowedError) {
-        throw new BadValuesError("No access to view and link posts in map");
-      } else {
-        throw e;
-      }
-    }
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
+  //    * @returns dependency map with id id
+  //    */
+  //   @Router.get("/depmap/:id")
+  //   async getMapById(session: WebSessionDoc, id: ObjectId) {
+  //     WebSession.getUser(session);
+  //     const map = await DepMap.getMapById(id);
+  //     const authors = await User.idsToUsernames(map.map((m) => new ObjectId(m.author)));
+  //     return map.map((m, idx) => {
+  //       return { author: authors[idx], map: m };
+  //     });
+  //   }
 
-  /**
-   *
-   * @param session session
-   * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
-   * @returns deletes dependency map with corresponding id if user in session is the author of the map
-   */
-  @Router.delete("/depmap/:id")
-  async deleteMap(session: WebSessionDoc, id: ObjectId) {
-    const user = WebSession.getUser(session);
-    const msg = await DepMap.delete(id, user);
-    await ValidationMap.delete(id.toString());
-    return msg;
-  }
+  //   @Router.get("/depmap")
+  //   async getAllMap(session: WebSessionDoc) {
+  //     WebSession.getUser(session);
+  //     const maps = await DepMap.getMapById();
+  //     const authors = await User.idsToUsernames(maps.map((map) => new ObjectId(map.author)));
+  //     return maps.map((map, idx) => {
+  //       return { author: authors[idx], map: map };
+  //     });
+  //   }
 
-  /**
-   *
-   * @param session session
-   * @param postId id of a post e.g. 652724ee4b6d1aec45545d0a
-   * @returns all dependency maps where the postId is a postrequisite in the map
-   */
-  @Router.get("/depmap/postprerequisite/:postId")
-  async getPrerequisiteForPost(session: WebSessionDoc, postId: ObjectId) {
-    const user = WebSession.getUser(session);
-    if (!postId) {
-      throw new BadValuesError("Please provide a post id");
-    }
-    await ExclusivePost.getById(postId, user);
-    const maps = await DepMap.getMapById();
-    const prerequisite = maps.filter((map) => {
-      const vals = Object.values(map.deps).reduce((accumulator, value) => accumulator.concat(value), []);
-      return vals.includes(postId.toString());
-    });
-    return prerequisite;
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
+  //    * @param update.deps A json of key value pairs where keys are posts ids (prerequistes) and values are an Array of post ids (post requisites) e.g. {"652725144b6d1aec45545d0b": ["652724ee4b6d1aec45545d0a"], "652724ee4b6d1aec45545d0a": ["652725144b6d1aec45545d0c, 652725144b6d1aec45545d0d"]}
+  //    * @param update.tags  Array of strings (subjects of post) e.g. ["life", "biology"]
+  //    * @param update.title  title of dependency map
+  //    * @returns updates the dependency map with id id
+  //    */
+  //   @Router.patch("/depmap")
+  //   async updateMap(session: WebSessionDoc, id: ObjectId, update: Partial<DependencyMapDoc>) {
+  //     const user = WebSession.getUser(session);
+  //     try {
+  //       if (update.deps) {
+  //         const deps = update.deps;
+  //         const keyIds = Object.keys(deps);
+  //         const valIds = Object.values(deps).reduce((accumulator, value) => accumulator.concat(value), []);
+  //         const allItems = [...new Set([...keyIds, ...valIds])];
+  //         await Promise.all(allItems.map((postId) => ExclusivePost.getById(new ObjectId(postId), user)));
+  //       }
+  //       return await DepMap.update(id, user, update);
+  //     } catch (e) {
+  //       if (e instanceof NotFoundError) {
+  //         throw new BadValuesError("postIds for dependency map not found");
+  //       } else if (e instanceof NotAllowedError) {
+  //         throw new BadValuesError("No access to view and link posts in map");
+  //       } else {
+  //         throw e;
+  //       }
+  //     }
+  //   }
 
-  /**
-   *
-   * @param session session
-   * @returns all maps where every post in map is viewable by user in session
-   */
-  @Router.get("/users/depmap/viewableMaps")
-  async getFullyViewableMaps(session: WebSessionDoc) {
-    const user = WebSession.getUser(session);
-    const viewableMap = [];
-    const allMaps = await DepMap.getMapById();
-    const authors = await User.idsToUsernames(allMaps.map((map) => new ObjectId(map.author)));
-    for (let mapIdx = 0; mapIdx < allMaps.length; mapIdx++) {
-      const map = allMaps[mapIdx];
-      const vals = Object.values(map.deps).reduce((accumulator, value) => accumulator.concat(value), []);
-      const keyIds = Object.keys(map.deps).map((id) => new ObjectId(id));
-      const valIds = vals.map((id) => new ObjectId(id));
-      const allPosts = new Set([...keyIds, ...valIds]);
-      const allValidPosts = await ExclusivePost.filterValidPosts([...allPosts]);
-      const viewablePosts = await ExclusivePost.filterViewablePosts(allValidPosts, user);
-      if (viewablePosts.length === allValidPosts.length) {
-        viewableMap.push({ author: authors[mapIdx], map: map });
-      }
-    }
-    return viewableMap;
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
+  //    * @returns deletes dependency map with corresponding id if user in session is the author of the map
+  //    */
+  //   @Router.delete("/depmap/:id")
+  //   async deleteMap(session: WebSessionDoc, id: ObjectId) {
+  //     const user = WebSession.getUser(session);
+  //     const msg = await DepMap.delete(id, user);
+  //     await ValidationMap.delete(id.toString());
+  //     return msg;
+  //   }
 
-  /**
-   *
-   * @param session session
-   * @returns returns all dependency maps sorted by number of approvals and disapprovals
-   */
-  @Router.get("/validation/depmap/popular")
-  async getPopularDepMap(session: WebSessionDoc) {
-    WebSession.getUser(session);
-    const maps = await DepMap.getMapById();
-    const mapIds = maps.map((map) => map._id.toString());
-    const authors = await User.idsToUsernames(maps.map((map) => new ObjectId(map.author)));
-    const validations = await ValidationMap.getValidationOfObjectIds(mapIds);
-    const validationWithTitles = validations.map((votes, idx) => {
-      return { author: authors[idx], title: maps[idx], approve: votes.haveValidated.length, disapprove: votes.haveRefuted.length };
-    });
-    validationWithTitles.sort((a, b) => a.disapprove - b.disapprove);
-    validationWithTitles.sort((a, b) => b.approve - a.approve);
-    return validationWithTitles;
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @returns all maps where every post in map is viewable by user in session
+  //    */
+  //   @Router.get("/users/depmap/viewableMaps")
+  //   async getFullyViewableMaps(session: WebSessionDoc) {
+  //     const user = WebSession.getUser(session);
+  //     const viewableMap = [];
+  //     const allMaps = await DepMap.getMapById();
+  //     const authors = await User.idsToUsernames(allMaps.map((map) => new ObjectId(map.author)));
+  //     for (let mapIdx = 0; mapIdx < allMaps.length; mapIdx++) {
+  //       const map = allMaps[mapIdx];
+  //       const vals = Object.values(map.deps).reduce((accumulator, value) => accumulator.concat(value), []);
+  //       const keyIds = Object.keys(map.deps).map((id) => new ObjectId(id));
+  //       const valIds = vals.map((id) => new ObjectId(id));
+  //       const allPosts = new Set([...keyIds, ...valIds]);
+  //       const allValidPosts = await ExclusivePost.filterValidPosts([...allPosts]);
+  //       const viewablePosts = await ExclusivePost.filterViewablePosts(allValidPosts, user);
+  //       if (viewablePosts.length === allValidPosts.length) {
+  //         viewableMap.push({ author: authors[mapIdx], map: map });
+  //       }
+  //     }
+  //     return viewableMap;
+  //   }
 
-  /**
-   *
-   * @param session session
-   * @param topic a topic (no quotes) e.g. biology
-   * @returns all dependency maps with topic in their tags
-   */
-  @Router.get("/depmap/search/topics/:topic")
-  async getMapsByTopics(session: WebSessionDoc, topic: string) {
-    WebSession.getUser(session);
-    const maps = await DepMap.getMapById();
-    const relevantMaps = maps.filter((map) => map.tags.includes(topic));
-    const authors = await User.idsToUsernames(relevantMaps.map((map) => map.author));
-    return relevantMaps.map((map, idx) => {
-      return { author: authors[idx], map: map };
-    });
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @returns returns all dependency maps sorted by number of approvals and disapprovals
+  //    */
+  //   @Router.get("/validation/depmap/popular")
+  //   async getPopularDepMap(session: WebSessionDoc) {
+  //     WebSession.getUser(session);
+  //     const maps = await DepMap.getMapById();
+  //     const mapIds = maps.map((map) => map._id.toString());
+  //     const authors = await User.idsToUsernames(maps.map((map) => new ObjectId(map.author)));
+  //     const validations = await ValidationMap.getValidationOfObjectIds(mapIds);
+  //     const validationWithTitles = validations.map((votes, idx) => {
+  //       return { author: authors[idx], title: maps[idx], approve: votes.haveValidated.length, disapprove: votes.haveRefuted.length };
+  //     });
+  //     validationWithTitles.sort((a, b) => a.disapprove - b.disapprove);
+  //     validationWithTitles.sort((a, b) => b.approve - a.approve);
+  //     return validationWithTitles;
+  //   }
 
-  // Validation[User, DependencyMap]
+  //   // Validation[User, DependencyMap]
 
-  /**
-   *
-   * @param session session
-   * @returns get all dependency maps with information about users that approved or disapporved it
-   */
-  @Router.get("/validation/depmap")
-  async getAllDepMapValidations(session: WebSessionDoc) {
-    WebSession.getUser(session);
-    const allMaps = await DepMap.getMapById();
-    const authors = await User.idsToUsernames(allMaps.map((map) => new ObjectId(map.author)));
-    const validations = await ValidationMap.getValidationOfObjectIds(allMaps.map((map) => map._id.toString()));
-    const haveValidated = validations.map((validation) => validation.haveValidated.map((userId) => new ObjectId(userId)));
-    const haveRefuted = validations.map((validation) => validation.haveRefuted.map((userId) => new ObjectId(userId)));
-    const approvals = await Promise.all(haveValidated.map((users) => User.idsToUsernames(users)));
-    const disapprovals = await Promise.all(haveRefuted.map((users) => User.idsToUsernames(users)));
-    return allMaps.map((map, idx) => {
-      return { author: authors[idx], map: map, approvals: approvals[idx], disapprovals: disapprovals[idx] };
-    });
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @returns get all dependency maps with information about users that approved or disapporved it
+  //    */
+  //   @Router.get("/validation/depmap")
+  //   async getAllDepMapValidations(session: WebSessionDoc) {
+  //     WebSession.getUser(session);
+  //     const allMaps = await DepMap.getMapById();
+  //     const authors = await User.idsToUsernames(allMaps.map((map) => new ObjectId(map.author)));
+  //     const validations = await ValidationMap.getValidationOfObjectIds(allMaps.map((map) => map._id.toString()));
+  //     const haveValidated = validations.map((validation) => validation.haveValidated.map((userId) => new ObjectId(userId)));
+  //     const haveRefuted = validations.map((validation) => validation.haveRefuted.map((userId) => new ObjectId(userId)));
+  //     const approvals = await Promise.all(haveValidated.map((users) => User.idsToUsernames(users)));
+  //     const disapprovals = await Promise.all(haveRefuted.map((users) => User.idsToUsernames(users)));
+  //     return allMaps.map((map, idx) => {
+  //       return { author: authors[idx], map: map, approvals: approvals[idx], disapprovals: disapprovals[idx] };
+  //     });
+  //   }
 
-  /**
-   *
-   * @param session session
-   * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
-   * @returns get dependency maps with id id with information about users that approved or disapporved it
-   */
-  @Router.get("/validation/depmap/:id")
-  async getDepMapValidationsById(session: WebSessionDoc, id: ObjectId) {
-    WebSession.getUser(session);
-    const map = (await DepMap.getMapById(id))[0];
-    const user = await User.getUserById(new ObjectId(map.author));
-    const validation = (await ValidationMap.getValidationByObjectId(id.toString()))[0];
-    const approvals = await User.idsToUsernames(validation.haveValidated.map((user) => new ObjectId(user)));
-    const disapprovals = await User.idsToUsernames(validation.haveRefuted.map((user) => new ObjectId(user)));
-    return { author: user.username, map: map, approvals: approvals, disapprovals: disapprovals };
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
+  //    * @returns get dependency maps with id id with information about users that approved or disapporved it
+  //    */
+  //   @Router.get("/validation/depmap/:id")
+  //   async getDepMapValidationsById(session: WebSessionDoc, id: ObjectId) {
+  //     WebSession.getUser(session);
+  //     const map = (await DepMap.getMapById(id))[0];
+  //     const user = await User.getUserById(new ObjectId(map.author));
+  //     const validation = (await ValidationMap.getValidationByObjectId(id.toString()))[0];
+  //     const approvals = await User.idsToUsernames(validation.haveValidated.map((user) => new ObjectId(user)));
+  //     const disapprovals = await User.idsToUsernames(validation.haveRefuted.map((user) => new ObjectId(user)));
+  //     return { author: user.username, map: map, approvals: approvals, disapprovals: disapprovals };
+  //   }
 
-  /**
-   *
-   * @param session session
-   * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
-   * @returns approve dependency map with id id
-   */
-  @Router.patch("/validation/approval/depmap/:id")
-  async validateDepMap(session: WebSessionDoc, id: string) {
-    const user = WebSession.getUser(session);
-    await ValidationMap.validate(id, user.toString());
-    return { msg: `Successfully approved map ${id}` };
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
+  //    * @returns approve dependency map with id id
+  //    */
+  //   @Router.patch("/validation/approval/depmap/:id")
+  //   async validateDepMap(session: WebSessionDoc, id: string) {
+  //     const user = WebSession.getUser(session);
+  //     await ValidationMap.validate(id, user.toString());
+  //     return { msg: `Successfully approved map ${id}` };
+  //   }
 
-  /**
-   *
-   * @param session session
-   * @param id  id of a dependencymap e.g. 652724ee4b6d1aec45545d0a
-   * @returns disapprove dependencymap with id id
-   */
-  @Router.patch("/validation/disapproval/depmap/:id")
-  async refuteDepMap(session: WebSessionDoc, id: string) {
-    const user = WebSession.getUser(session);
-    await ValidationMap.refute(id, user.toString());
-    return { msg: `Successfully disapproved map ${id}` };
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @param id  id of a dependencymap e.g. 652724ee4b6d1aec45545d0a
+  //    * @returns disapprove dependencymap with id id
+  //    */
+  //   @Router.patch("/validation/disapproval/depmap/:id")
+  //   async refuteDepMap(session: WebSessionDoc, id: string) {
+  //     const user = WebSession.getUser(session);
+  //     await ValidationMap.refute(id, user.toString());
+  //     return { msg: `Successfully disapproved map ${id}` };
+  //   }
 
-  /**
-   *
-   * @param session session
-   * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
-   * @returns undo the approval or disapproval on dependency map with id id
-   */
-  @Router.patch("/validation/undoValidation/depmap/:id")
-  async undoVoteDepMap(session: WebSessionDoc, id: string) {
-    const user = WebSession.getUser(session);
-    await ValidationMap.undoVote(id, user.toString());
-    return { msg: `Cancelled vote on map ${id}` };
-  }
+  //   /**
+  //    *
+  //    * @param session session
+  //    * @param id id of a dependency map e.g. 652724ee4b6d1aec45545d0a
+  //    * @returns undo the approval or disapproval on dependency map with id id
+  //    */
+  //   @Router.patch("/validation/undoValidation/depmap/:id")
+  //   async undoVoteDepMap(session: WebSessionDoc, id: string) {
+  //     const user = WebSession.getUser(session);
+  //     await ValidationMap.undoVote(id, user.toString());
+  //     return { msg: `Cancelled vote on map ${id}` };
+  //   }
 }
 
 export default getExpressRouter(new Routes());

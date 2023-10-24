@@ -7,26 +7,44 @@ export const useResumeStore = defineStore(
   "resume",
   () => {
     const currentUserResumes = ref<Array<Record<string, any>>>([]);
+    const userResumesValidations = ref<Array<any>>([]);
     const editingResume = ref<string>("");
 
     const selectResumeToEdit = (field: string) => {
       editingResume.value = field;
     };
-    const resetStore = async () => {
-      await getResumes();
-    };
 
-    const getResumes = async () => {
+    const getResumeValidation = async () => {
       try {
-        const { username } = await fetchy("api/session", "GET", { alert: false });
-        currentUserResumes.value = await fetchy(`/api/resume/${username}`, "GET");
+        userResumesValidations.value = await Promise.all(currentUserResumes.value.map((resume) => fetchy(`/api/validation/resume/${resume.resume._id}`, "GET")));
       } catch (error) {
         return;
       }
     };
 
-    const createResume = async (update: BodyT) => {
-      await fetchy(`/api/resume`, "POST", { body: update });
+    const resetStore = async () => {
+      await getResumes();
+      await getResumeValidation();
+    };
+
+    const getResumes = async () => {
+      try {
+        const { username } = await fetchy("/api/session", "GET", { alert: false });
+        currentUserResumes.value = await fetchy(`/api/resume/${username}`, "GET");
+        userResumesValidations.value = await Promise.all(currentUserResumes.value.map((resume) => fetchy(`/api/validation/resume/${resume.resume._id}`, "GET")));
+        await getResumeValidation();
+      } catch (error) {
+        return;
+      }
+    };
+
+    const createResume = async (body: BodyT) => {
+      try {
+        await fetchy(`/api/resume`, "POST", { body: body });
+      } catch (error) {
+        return;
+      }
+      await resetStore();
     };
 
     const editResume = async (field: string, patch: BodyT) => {
@@ -35,9 +53,15 @@ export const useResumeStore = defineStore(
         return;
       }
       const body = { update: patch, id: resumes[0].resume._id };
-      await fetchy("/api/resume", "PATCH", {
-        body: body,
-      });
+      try {
+        await fetchy("/api/resume", "PATCH", {
+          body: body,
+        });
+      } catch (error) {
+        return;
+      }
+
+      await resetStore();
     };
 
     const deleteResume = async (id: string) => {
@@ -47,12 +71,15 @@ export const useResumeStore = defineStore(
 
     return {
       currentUserResumes,
+      userResumesValidations,
       editingResume,
       getResumes,
+      getResumeValidation,
       createResume,
       editResume,
       selectResumeToEdit,
       deleteResume,
+      resetStore,
     };
   },
   { persist: true },

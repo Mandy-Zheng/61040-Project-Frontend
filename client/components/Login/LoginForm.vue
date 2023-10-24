@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import router from "@/router";
+import { usePostStore } from "@/stores/post";
 import { useResumeStore } from "@/stores/resume";
 import { useUserStore } from "@/stores/user";
 import { ref } from "vue";
@@ -7,12 +8,14 @@ import { ref } from "vue";
 const username = ref("");
 const password = ref("");
 const { loginUser, updateSession } = useUserStore();
-const { getResumes } = useResumeStore();
+const { resetStore } = useResumeStore();
+const { getPosts } = usePostStore();
 
 async function login() {
   await loginUser(username.value, password.value);
   void updateSession();
-  void getResumes();
+  void resetStore();
+  void getPosts();
   void router.push({ name: "Home" });
 }
 </script>

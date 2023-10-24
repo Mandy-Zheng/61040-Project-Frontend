@@ -2,10 +2,11 @@
 import router from "@/router";
 import { useResumeStore } from "@/stores/resume";
 import { storeToRefs } from "pinia";
-import { computed, ref } from "vue";
+import { computed, onBeforeMount, ref } from "vue";
 import { capitalizePhrase } from "../../../server/framework/utils";
+
 const resumeStore = useResumeStore();
-const { createResume, editResume, selectResumeToEdit } = resumeStore;
+const { createResume, editResume, selectResumeToEdit, resetStore } = resumeStore;
 const { currentUserResumes, editingResume } = storeToRefs(resumeStore);
 
 const props = defineProps(["field"]);
@@ -64,6 +65,14 @@ const updateResume = async () => {
   await editResume(selectedForm.value, update);
   await router.push("/profile");
 };
+
+onBeforeMount(async () => {
+  try {
+    await resetStore();
+  } catch {
+    // User is not logged in
+  }
+});
 </script>
 
 <template>
