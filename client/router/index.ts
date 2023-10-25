@@ -58,11 +58,19 @@ const router = createRouter({
       component: CreateResumeForm,
       meta: { requiresAuth: true },
     },
+    // {
+    //   path: "/searchProfiles",
+    //   name: "profileSearch",
+    //   component: SearchView,
+    //   //children: [{ path: "", name: "profileSearch", component: SearchView }],
+    //   meta: { requiresAuth: true },
+    // },
     {
       path: "/searchProfiles",
       name: "profileSearch",
       component: SearchView,
-      props: { category: "Resumes" },
+
+      //children: [{ path: "", name: "profileSearch", component: SearchView }],
       meta: { requiresAuth: true },
     },
     {

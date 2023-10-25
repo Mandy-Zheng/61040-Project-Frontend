@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import ResumeComponent from "@/components/Resume/ResumeComponent.vue";
 import { fetchy } from "@/utils/fetchy";
-import { ref } from "vue";
+import { onBeforeMount, ref } from "vue";
 import { capitalizePhrase } from "../../../server/framework/utils";
-const username = ref<string>("");
+
+const props = defineProps(["user"]);
+const username = ref<string>(props.user);
 const field = ref<string>("");
 const rating = ref<number>(0);
 const resumeResults = ref<Array<any>>([]);
@@ -18,6 +20,13 @@ const searchResume = async () => {
     return;
   }
 };
+
+onBeforeMount(async () => {
+  console.log(props.user);
+  if (props.user) {
+    await searchResume();
+  }
+});
 </script>
 
 <template>
@@ -38,7 +47,10 @@ const searchResume = async () => {
   </div>
 
   <div class="userresumes">
-    <div class="resumes" v-for="(resume, index) in resumeResults" :key="resume">
+    <div v-if="resumeResults.length === 0">
+      <i>No Results</i>
+    </div>
+    <div v-else class="resumes" v-for="(resume, index) in resumeResults" :key="resume">
       <ResumeComponent
         :id="resume.resume.field"
         :resume="resume.resume"

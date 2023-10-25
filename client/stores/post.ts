@@ -38,7 +38,7 @@ export const usePostStore = defineStore(
 
     const deletePost = async (id: string) => {
       try {
-        viewablePosts.value = await fetchy(`/api/exclusivepost/${id}`, "DELETE");
+        await fetchy(`/api/exclusivepost/${id}`, "DELETE");
       } catch (_) {
         return;
       }

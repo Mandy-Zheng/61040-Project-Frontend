@@ -6,13 +6,11 @@ import { storeToRefs } from "pinia";
 import { computed, onBeforeMount, ref } from "vue";
 const postStore = usePostStore();
 const { getPosts } = postStore;
-const { viewablePosts, postValidations } = storeToRefs(postStore);
+const { viewablePosts } = storeToRefs(postStore);
 const { currentUsername } = storeToRefs(useUserStore());
 const showCurrentUserPosts = ref<boolean>(false);
-
+console.log(viewablePosts.value);
 const posts = computed(() => (showCurrentUserPosts.value ? viewablePosts.value.filter((post) => post.author === currentUsername.value) : viewablePosts.value));
-const validations = computed(() => (showCurrentUserPosts.value ? postValidations.value.filter((post) => post.author === currentUsername.value) : postValidations.value));
-console.log("what", postValidations.value);
 onBeforeMount(async () => {
   try {
     await getPosts();
@@ -29,8 +27,8 @@ onBeforeMount(async () => {
       <button @click="navigate" role="link" class="add-btn pure-button">New Post</button>
     </router-link>
     <label for="checkbox-radio-option-one" class="pure-checkbox">Show My Posts Only </label> <input type="checkbox" class="checkbox" id="checkbox-radio-option-one" v-model="showCurrentUserPosts" />
-    <div class="post-list" v-for="(post, index) in posts" :key="post">
-      <PostComponent :post="post.post" :rating="post.rating" :author="post.author" :approvals="validations[index].approvals" :disapprovals="validations[index].disapprovals" />
+    <div class="post-list" v-for="post in posts" :key="post">
+      <PostComponent :post="post.post" :rating="post.rating" :author="post.author" />
     </div>
   </main>
 </template>
@@ -50,6 +48,7 @@ h2 {
   display: flex;
   width: 90%;
   margin: auto;
+  margin-bottom: 2em;
 }
 
 main {

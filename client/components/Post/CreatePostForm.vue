@@ -27,6 +27,7 @@ const minimumRating = ref<number>(0);
 const selectedTags = ref<Array<string>>([]);
 const isPublic = ref<boolean>(true);
 async function newPost() {
+  console.log("hey");
   if (isPublic.value) {
     selectedUsers.value.push("");
   }
@@ -60,7 +61,7 @@ onBeforeMount(async () => {
 </script>
 <style src="@vueform/multiselect/themes/default.css"></style>
 <template>
-  <div class="form">
+  <div class="form" @submit.prevent="newPost">
     <h2 for="content">Create a Post</h2>
     <form class="pure-form pure-form-aligned">
       <fieldset>
@@ -68,12 +69,19 @@ onBeforeMount(async () => {
           <label class="form-label" for="title">Title</label>
           <input type="text" v-model="title" placeholder="Title" required />
         </div>
-        <div class="post-audience">
+        <Multiselect class="multiselect" v-model="selectedUsers" :options="usernames" :mode="'tags'" :searchable="true" :close-on-select="false" />
+        <!-- <div class="post-audience">
           <label for="checkbox-radio-option-one" class="pure-checkbox">Make Post Public </label> <input type="checkbox" class="checkbox" id="checkbox-radio-option-one" v-model="isPublic" />
+        </div>
+        <div class="annotators" v-if="isPublic">
+          <input class="number-inp" type="number" v-model="minimumRating" min="0" step="1" />
+        </div> -->
+        <div class="pure-controls">
+          <button type="submit" class="pure-button pure-button-primary">Submit</button>
         </div>
       </fieldset>
     </form>
-    <div class="selections">
+    <!-- <div class="selections">
       <div class="post-audience" v-if="!isPublic">
         <div class="experts">
           <div class="expert-field">
@@ -106,7 +114,7 @@ onBeforeMount(async () => {
           <button type="submit" class="pure-button pure-button-primary" @click.prevent="newPost">Submit</button>
         </div>
       </fieldset>
-    </form>
+    </form> -->
   </div>
 </template>
 

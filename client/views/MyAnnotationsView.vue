@@ -1,28 +1,25 @@
 <script setup lang="ts">
 import PostComponent from "@/components/Post/PostComponent.vue";
-
 import { fetchy } from "@/utils/fetchy";
 import { onBeforeMount, ref } from "vue";
-
 const postAnnotations = ref<Array<any>>([]);
 const deletedPostAnnotations = ref<Array<any>>([]);
-async function getPosts() {
+async function getAnnotatedPosts() {
   try {
-    try {
-      const annotations = await fetchy("/api/annotation/myAnnotations", "GET", { alert: false });
-      deletedPostAnnotations.value = annotations.pop();
-      postAnnotations.value = annotations;
-    } catch (error) {
-      return;
-    }
-  } catch (_) {
+    const annotations = await fetchy("/api/annotation/myAnnotations", "GET", { alert: false });
+    deletedPostAnnotations.value = annotations.pop().annotations;
+    postAnnotations.value = annotations;
+    console.log(deletedPostAnnotations.value, postAnnotations.value);
+    console.log(deletedPostAnnotations.value);
+  } catch (error) {
     return;
   }
 }
 
 onBeforeMount(async () => {
   try {
-    await getPosts();
+    await getAnnotatedPosts();
+    console.log(deletedPostAnnotations.value);
   } catch {
     // User is not logged in
   }
@@ -35,6 +32,7 @@ onBeforeMount(async () => {
     <div class="post-list" v-for="post in postAnnotations" :key="post">
       <PostComponent :post="post.post" :rating="post.post.rating" :author="post.post.author" :annotations="post.annotations" />
     </div>
+    <br /><br />
     <div v-if="deletedPostAnnotations.length > 0">
       <div v-for="annotation in deletedPostAnnotations" :key="annotation">
         {{ annotation.quote }}

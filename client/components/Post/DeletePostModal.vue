@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps(["show", "field"]);
+const props = defineProps(["show", "title"]);
 
 const emit = defineEmits(["close", "delete"]);
 </script>
@@ -9,9 +9,9 @@ const emit = defineEmits(["close", "delete"]);
     <div v-if="show" class="modal-mask">
       <div class="modal-container">
         <div class="modal-header">
-          Are you sure you want to delete your
-          <span>{{ props.field }}</span>
-          resume?
+          Are you sure you want to delete your post with title
+          <span>{{ props.title }}</span
+          >?
         </div>
         <div class="modal-footer">
           <button class="modal-default-button" @click="emit('close')">No</button>

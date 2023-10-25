@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import ResumeSearch from "@/components/Search/ResumeSearch.vue";
-
-const props = defineProps(["category"]);
+const props = defineProps(["username"]);
+console.log(props.username);
+// console.log($route.query.username);
 </script>
 
 <template>
   <main>
-    <h1>Search for {{ props.category }}</h1>
+    <h1>Search for Resumes</h1>
     <div class="header">
-      <ResumeSearch v-if="props.category === 'Resumes'" />
+      <ResumeSearch :user="$route.query.username ?? ''" />
     </div>
   </main>
 </template>

@@ -1,12 +1,17 @@
 <script setup lang="ts">
+import router from "@/router";
 import { usePostStore } from "@/stores/post";
+import { useUserStore } from "@/stores/user";
 import { fetchy } from "@/utils/fetchy";
-import { ref } from "vue";
+import { storeToRefs } from "pinia";
+import { onBeforeMount, ref } from "vue";
 import ValidationModal from "../Validation/ValidationModal.vue";
+import DeletePostModal from "./DeletePostModal.vue";
 import PostInformationPanel from "./PostInformationPanel.vue";
-const props = defineProps(["post", "rating", "author", "notes", "approvals", "disapprovals"]);
-const postStore = usePostStore();
-const { getPostValidations } = postStore;
+const props = defineProps(["post", "rating", "author", "notes"]);
+
+const { currentUsername } = storeToRefs(useUserStore());
+const { deletePost } = usePostStore();
 const enum STATUS {
   LIKED,
   DISLIKED,
@@ -14,9 +19,10 @@ const enum STATUS {
 }
 const showApprovals = ref<boolean>(true);
 const showValidationModal = ref<boolean>(false);
-
+const approvals = ref<Array<any>>([]);
+const disapprovals = ref<Array<any>>([]);
 const likeStatus = ref<STATUS>(STATUS.NEUTRAL);
-
+const showDeleteModal = ref<boolean>(false);
 function openApprovalModal() {
   showApprovals.value = true;
   showValidationModal.value = true;
@@ -27,40 +33,70 @@ function openDisapprovalModal() {
   showValidationModal.value = true;
 }
 
-async function approve() {
+async function getPostValidation() {
   try {
-    await fetchy(`/api/validation/undoValidation/exclusivepost/${props.post._id}`, "PATCH", { alert: false });
-    if (likeStatus.value !== STATUS.LIKED) {
-      await fetchy(`/api/validation/approval/exclusivepost/${props.post._id}`, "PATCH", { alert: false });
-    }
-    await getPostValidations();
+    const validation = await fetchy(`/api/validation/exclusivepost/${props.post._id}`, "GET");
+    approvals.value = validation.approvals;
+    disapprovals.value = validation.disapprovals;
+    likeStatus.value = approvals.value.includes(currentUsername.value) ? STATUS.LIKED : disapprovals.value.includes(currentUsername.value) ? STATUS.DISLIKED : STATUS.NEUTRAL;
   } catch (error) {
     return;
   }
-  likeStatus.value = likeStatus.value === STATUS.LIKED ? STATUS.NEUTRAL : STATUS.LIKED;
+}
+
+async function approve() {
+  try {
+    if (likeStatus.value !== STATUS.LIKED) {
+      await fetchy(`/api/validation/approval/exclusivepost/${props.post._id}`, "PATCH", { alert: false });
+    } else {
+      await fetchy(`/api/validation/undoValidation/exclusivepost/${props.post._id}`, "PATCH", { alert: false });
+    }
+    await getPostValidation();
+  } catch (error) {
+    return;
+  }
 }
 
 async function disapprove() {
   try {
-    await fetchy(`/api/validation/undoValidation/exclusivepost/${props.post._id}`, "PATCH", { alert: false });
     if (likeStatus.value !== STATUS.DISLIKED) {
       await fetchy(`/api/validation/disapproval/exclusivepost/${props.post._id}`, "PATCH", { alert: false });
+    } else {
+      await fetchy(`/api/validation/undoValidation/exclusivepost/${props.post._id}`, "PATCH", { alert: false });
     }
-    await getPostValidations();
+    await getPostValidation();
   } catch (error) {
     return;
   }
-  likeStatus.value = likeStatus.value === STATUS.DISLIKED ? STATUS.NEUTRAL : STATUS.DISLIKED;
 }
+
+async function confirmDeletePost() {
+  showDeleteModal.value = false;
+  await deletePost(props.post._id);
+}
+
+const go = async () => {
+  await router.push({ path: `/searchProfiles`, query: { username: props.author } });
+};
+onBeforeMount(async () => {
+  try {
+    await getPostValidation();
+  } catch {
+    // User is not logged in
+  }
+});
 </script>
 
 <template>
   <div class="post-card">
-    <!-- <font-awesome-icon :icon="['fas', 'github']" /> -->
     <div class="post">
       <span class="post-header">
-        <h3>Created by: {{ props.author }}</h3>
-        <span class="edit-btn"><img src="../../../client/assets/images/pen.png" /></span>
+        <h3 @click="go">Created by: {{ props.author }}</h3>
+
+        <span v-if="props.author === currentUsername" class="edit-btn" @click="showDeleteModal = true"><img src="../../../client/assets/images/trash-can.svg" /></span>
+        <teleport to="body">
+          <DeletePostModal :show="showDeleteModal" :title="props.post.title" @close="showDeleteModal = false" @delete="confirmDeletePost" />
+        </teleport>
       </span>
       <div class="post-frame">
         <div class="post-title">
@@ -75,25 +111,25 @@ async function disapprove() {
           <span @click="approve"
             ><img v-if="likeStatus !== STATUS.LIKED" class="like" src="../../assets/images/unactivelike.svg" /> <img v-else class="like" src="../../assets/images/activelike.svg"
           /></span>
-          <p @click="openApprovalModal" class="information-scent">({{ props.approvals.length }})</p>
+          <p @click="openApprovalModal" class="information-scent">({{ approvals.length }})</p>
         </div>
         <div class="disapprovals">
           <span @click="disapprove"
             ><img v-if="likeStatus !== STATUS.DISLIKED" class="dislike" src="../../assets/images/unactivelike.svg" /> <img v-else class="dislike" src="../../assets/images/activelike.svg"
           /></span>
-          <p @click="openDisapprovalModal" class="information-scent">({{ props.disapprovals.length }})</p>
+          <p @click="openDisapprovalModal" class="information-scent">({{ disapprovals.length }})</p>
           <teleport to="body">
             <ValidationModal
               :show="showValidationModal"
               :title="showApprovals ? 'Liked By:' : 'Disliked By:'"
-              :userList="showApprovals ? props.approvals : props.disapprovals"
+              :userList="showApprovals ? approvals : disapprovals"
               @closeValidation="showValidationModal = false"
             />
           </teleport>
         </div>
       </div>
     </div>
-    <PostInformationPanel :post="post" :rating="rating" :author="author" :notes="notes" />
+    <PostInformationPanel :post="post" :rating="rating" :author="author" :notes="notes" :status="likeStatus" />
   </div>
 </template>
 
@@ -137,8 +173,14 @@ h3 {
   margin: 0 0 0.5em 0.5em;
 }
 img {
-  width: 20px;
-  height: 20px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  padding: 2px;
+}
+img:hover {
+  background-color: #eeeeee;
+  padding: 2px;
 }
 section,
 .post-card {
@@ -146,7 +188,6 @@ section,
   flex-wrap: wrap;
   margin: 5px;
   width: 100%;
-  border: 2px solid #eeeeee;
 }
 
 .post-frame {
@@ -159,6 +200,7 @@ section,
   height: 100%;
   box-sizing: border-box;
   padding: 1em;
+  margin: 1em 0;
 }
 
 .post-header {
@@ -173,6 +215,7 @@ section,
   flex-direction: column;
   border-right: 2px solid #eeeeee;
   padding: 1em 2em 1.5em 2em;
+  border: 2px solid #eeeeee;
 }
 
 .post-title {
@@ -185,7 +228,7 @@ section,
 }
 
 .post-card {
-  height: 420px;
+  height: 400px;
 }
 .pill {
   display: flex;

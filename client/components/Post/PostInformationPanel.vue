@@ -3,7 +3,9 @@ import AnnotationComponent from "@/components/Annotation/AnnotationComponent.vue
 import CreateAnnotationForm from "@/components/Annotation/CreateAnnotationForm.vue";
 import { onBeforeMount, ref } from "vue";
 import { fetchy } from "../../utils/fetchy";
-const props = defineProps(["post", "rating", "author", "notes"]);
+import ValidatorCredentialPanel from "../Validation/ValidatorCredentialPanel.vue";
+
+const props = defineProps(["post", "rating", "author", "notes", "status"]);
 const noteId = ref<string>("");
 const quote = ref<string>("");
 const comment = ref<string>("");
@@ -89,8 +91,13 @@ onBeforeMount(async () => {
         :isNewNote="isNewNote"
       />
     </div>
-    <div v-if="selectedMenu === MENU_MODE.APPROVALS" class="approvals"></div>
-    <div v-if="selectedMenu === MENU_MODE.DISAPPROVALS" class="disapprovals"></div>
+
+    <div v-if="selectedMenu === MENU_MODE.APPROVALS" class="approvals">
+      <ValidatorCredentialPanel :postId="props.post._id" :isApprovalMode="true" :key="props.status" />
+    </div>
+    <div v-if="selectedMenu === MENU_MODE.DISAPPROVALS" class="disapprovals">
+      <ValidatorCredentialPanel :postId="props.post._id" :isApprovalMode="false" :key="props.status" />
+    </div>
   </div>
 </template>
 
@@ -99,7 +106,9 @@ textarea::selection {
   background-color: cadetblue;
   color: red;
 }
-
+.post-menu {
+  border: 2px solid #eeeeee;
+}
 .annotations {
   display: flex;
   height: 500px;
@@ -139,6 +148,7 @@ textarea::selection {
   padding: 0.5em;
   margin-bottom: 0;
   background-color: white;
+  border: 2px solid #eeeeee;
 }
 
 .active {
@@ -146,6 +156,7 @@ textarea::selection {
   padding: 0.5em;
   margin-bottom: 0;
   background-color: #eeeeee;
+  border: 2px solid #eeeeee;
 }
 .menu-btn:hover {
   background-color: #eeeeee;

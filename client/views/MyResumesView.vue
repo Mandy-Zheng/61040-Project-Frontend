@@ -52,8 +52,6 @@ onBeforeMount(async () => {
             :approvals="userResumesValidations[index].approvals"
             :disapprovals="userResumesValidations[index].disapprovals"
           />
-          <!-- <PostComponent v-if="editing !== post._id" :post="post" @refreshPosts="getPosts" @editPost="updateEditing" /> -->
-          <!-- <==<EditPostForm v-else :post="post" @refreshPosts="getPosts" @editPost="updateEditing" /> -->
         </article>
       </section>
     </section>

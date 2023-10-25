@@ -42,16 +42,42 @@ export default class ValidationConcept {
 
   async validate(objectId: string, user: string) {
     const item = (await this.getValidationByObjectId(objectId))[0];
-    await this.haveVoted(item, user);
-    await this.validations.updateOne({ objectId }, { haveValidated: [...item.haveValidated, user] });
+    const indexValidate = item.haveValidated.indexOf(user);
+    const validated = item.haveValidated;
+    if (indexValidate !== -1) {
+      return { msg: `Successfully Validated ${objectId}!` };
+    }
+    validated.push(user);
+    const indexRefute = item.haveRefuted.indexOf(user);
+    const refuted = item.haveRefuted;
+    if (indexRefute !== -1) {
+      refuted[indexRefute] = refuted[refuted.length - 1];
+      refuted.pop();
+      await this.validations.updateOne({ objectId }, { haveRefuted: refuted, haveValidated: validated });
+      return { msg: `Successfully Validated ${objectId}!` };
+    }
+    await this.validations.updateOne({ objectId }, { haveValidated: validated });
     return { msg: `Successfully Validated ${objectId}!` };
   }
 
   async refute(objectId: string, user: string) {
     const item = (await this.getValidationByObjectId(objectId))[0];
-    await this.haveVoted(item, user);
-    await this.validations.updateOne({ objectId }, { haveRefuted: [...item.haveRefuted, user] });
-    return { msg: `Successfully Refuted ${objectId}!` };
+    const indexRefute = item.haveRefuted.indexOf(user);
+    const refuted = item.haveRefuted;
+    if (indexRefute !== -1) {
+      return { msg: `Successfully Validated ${objectId}!` };
+    }
+    refuted.push(user);
+    const indexValidate = item.haveValidated.indexOf(user);
+    const validated = item.haveValidated;
+    if (indexValidate !== -1) {
+      validated[indexValidate] = validated[validated.length - 1];
+      validated.pop();
+      await this.validations.updateOne({ objectId }, { haveValidated: validated, haveRefuted: refuted });
+      return { msg: `Successfully Validated ${objectId}!` };
+    }
+    await this.validations.updateOne({ objectId }, { haveRefuted: refuted });
+    return { msg: `Successfully Validated ${objectId}!` };
   }
 
   async undoVote(objectId: string, user: string) {

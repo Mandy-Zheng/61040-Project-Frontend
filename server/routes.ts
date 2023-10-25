@@ -414,8 +414,8 @@ class Routes {
     const validation = (await ValidationPost.getValidationByObjectId(id.toString()))[0];
     const validators = new Set([...validation.haveValidated]);
     const showValidatorCredentials = [];
+    const usernames = await User.idsToUsernames([...validators].map((id) => new ObjectId(id)));
     for (const tag of post.tags) {
-      const usernames = await User.idsToUsernames([...validators].map((id) => new ObjectId(id)));
       const resumes = await Promise.all([...validators].map((author) => Resume.getByAuthorAndField(new ObjectId(author), tag)));
       const netValidations = await Promise.all(resumes.map((res) => (res ? ValidationResume.getValidationByObjectId(res._id.toString()) : [null])));
       const parseValidations = netValidations.map((validation) => validation[0]);
@@ -442,8 +442,8 @@ class Routes {
     const validation = (await ValidationPost.getValidationByObjectId(id.toString()))[0];
     const validators = new Set([...validation.haveRefuted]);
     const showValidatorCredentials = [];
+    const usernames = await User.idsToUsernames([...validators].map((id) => new ObjectId(id)));
     for (const tag of post.tags) {
-      const usernames = await User.idsToUsernames([...validators].map((id) => new ObjectId(id)));
       const resumes = await Promise.all([...validators].map((author) => Resume.getByAuthorAndField(new ObjectId(author), tag)));
       const netValidations = await Promise.all(resumes.map((res) => (res ? ValidationResume.getValidationByObjectId(res._id.toString()) : [null])));
       const parseValidations = netValidations.map((validation) => validation[0]);

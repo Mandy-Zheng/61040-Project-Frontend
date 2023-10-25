@@ -6,14 +6,15 @@ const emit = defineEmits(["editAnnotations"]);
 async function editAnnotations() {
   emit("editAnnotations", props.note);
 }
-
 </script>
 
 <template>
   <div class="note">
     <div class="note-header">
       <h4>{{ props.note.quote }}</h4>
-      <div class="edit-btn" @click="editAnnotations"><img src="../../../client/assets/images/pen.png" /></div>
+      <div class="edit-btn" @click="editAnnotations">
+        <img src="../../../client/assets/images/pencil.svg" />
+      </div>
     </div>
     {{ props.note.comment }}
   </div>
