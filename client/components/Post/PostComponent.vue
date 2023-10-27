@@ -122,7 +122,7 @@ onBeforeMount(async () => {
           </div>
           <div class="disapprovals">
             <span @click="disapprove"
-              ><img v-if="likeStatus !== STATUS.DISLIKED" class="dislike" src="@/assets/images/unactivelike.svg" /> <img v-else class="dislike" src="../../assets/images/activelike.svg"
+              ><img v-if="likeStatus !== STATUS.DISLIKED" class="dislike" src="@/assets/images/unactivelike.svg" /> <img v-else class="dislike" src="@/assets/images/activelike.svg"
             /></span>
             <p class="information-scent tooltip">
               ({{ disapprovals.length }})
