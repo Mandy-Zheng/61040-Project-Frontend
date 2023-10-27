@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import ResumeSearch from "@/components/Search/ResumeSearch.vue";
 const props = defineProps(["username"]);
-console.log(props.username);
-// console.log($route.query.username);
 </script>
 
 <template>

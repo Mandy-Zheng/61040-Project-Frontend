@@ -21,6 +21,34 @@ const enum MENU_MODE {
 
 const selectedMenu = ref<MENU_MODE>(MENU_MODE.COMMENTS);
 
+const approvals = ref<Map<string, Array<any>>>(new Map());
+const disapprovals = ref<Map<string, Array<any>>>(new Map());
+async function getValidatorCredentials(isApprovalMode: boolean) {
+  try {
+    const rawValidationData = isApprovalMode
+      ? await fetchy(`/api/validation/approval/exclusivepost/${props.post._id}`, "GET")
+      : await fetchy(`/api/validation/disapproval/exclusivepost/${props.post._id}`, "GET");
+    const validationToField = new Map();
+    console.log(rawValidationData);
+    for (const data of rawValidationData) {
+      const { field } = data;
+      const validators = isApprovalMode ? data.approvers : data.disapprovers;
+      for (const userRatings of validators) {
+        const { user, rating } = userRatings;
+        const allRating = validationToField.get(user) ?? [];
+        allRating.push({ field, rating });
+        validationToField.set(user, allRating);
+      }
+    }
+    if (isApprovalMode) {
+      approvals.value = validationToField;
+    } else {
+      disapprovals.value = validationToField;
+    }
+  } catch (error) {
+    return new Map();
+  }
+}
 async function getPostAnnotations() {
   isNewNote.value = true;
   quote.value = "";
@@ -44,7 +72,7 @@ const toggleEditMode = async () => {
   }
 };
 
-function selectMenu(menuItem: MENU_MODE) {
+async function selectMenu(menuItem: MENU_MODE) {
   selectedMenu.value = menuItem;
 }
 
@@ -59,6 +87,8 @@ async function editAnnotations(note: any) {
 onBeforeMount(async () => {
   try {
     await getPostAnnotations();
+    await getValidatorCredentials(true);
+    await getValidatorCredentials(false);
   } catch {
     // User is not logged in
   }
@@ -102,12 +132,15 @@ onBeforeMount(async () => {
 </template>
 
 <style scoped>
+* {
+  font-family: "open sans";
+}
 textarea::selection {
   background-color: cadetblue;
   color: red;
 }
 .post-menu {
-  border: 2px solid #eeeeee;
+  border-bottom: 2px solid #d9d9d9;
 }
 .annotations {
   display: flex;
@@ -115,7 +148,7 @@ textarea::selection {
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  background-color: #eeeeee;
+  background-color: #f2efea;
   flex: 1;
   padding-top: 1em;
 }
@@ -140,7 +173,6 @@ textarea::selection {
   height: 320px;
   overflow-x: clip;
   overflow-y: scroll;
-  margin-bottom: 1em;
 }
 
 .menu-btn {
@@ -148,18 +180,24 @@ textarea::selection {
   padding: 0.5em;
   margin-bottom: 0;
   background-color: white;
-  border: 2px solid #eeeeee;
+  border-right: 2px solid #d9d9d9;
+  border-top: 2px solid #d9d9d9;
+  border-top-right-radius: 4px;
 }
 
 .active {
   border: 0px;
   padding: 0.5em;
   margin-bottom: 0;
-  background-color: #eeeeee;
-  border: 2px solid #eeeeee;
+  background-color: #f2efea;
+  border-right: 2px solid #d9d9d9;
+  border-top: 2px solid #d9d9d9;
+  border-top-right-radius: 4px;
+  border-bottom: 0px;
+  font-weight: bold;
 }
 .menu-btn:hover {
-  background-color: #eeeeee;
+  background-color: #f2efea;
 }
 
 textarea {
@@ -170,6 +208,11 @@ textarea {
 
 .annotate-btn {
   display: flex;
-  margin: 1em;
+  padding: 6px;
+  font-size: 18px;
+  border-radius: 4px;
+}
+.annotate-btn:hover {
+  background-color: white;
 }
 </style>

@@ -19,7 +19,6 @@ export const usePostStore = defineStore(
 
     const getPosts = async () => {
       try {
-        console.log("ran");
         viewablePosts.value = await fetchy("/api/exclusivepost", "GET");
         postValidations.value = await Promise.all(viewablePosts.value.map((post) => fetchy(`/api/validation/exclusivepost/${post.post._id}`, "GET")));
       } catch (_) {

@@ -9,8 +9,6 @@ async function getAnnotatedPosts() {
     const annotations = await fetchy("/api/annotation/myAnnotations", "GET", { alert: false });
     deletedPostAnnotations.value = annotations.pop().annotations;
     postAnnotations.value = annotations;
-    console.log(deletedPostAnnotations.value, postAnnotations.value);
-    console.log(deletedPostAnnotations.value);
   } catch (error) {
     return;
   }
@@ -19,7 +17,6 @@ async function getAnnotatedPosts() {
 onBeforeMount(async () => {
   try {
     await getAnnotatedPosts();
-    console.log(deletedPostAnnotations.value);
   } catch {
     // User is not logged in
   }
@@ -33,12 +30,6 @@ onBeforeMount(async () => {
       <PostComponent :post="post.post" :rating="post.post.rating" :author="post.post.author" :annotations="post.annotations" />
     </div>
     <br /><br />
-    <div v-if="deletedPostAnnotations.length > 0">
-      <div v-for="annotation in deletedPostAnnotations" :key="annotation">
-        {{ annotation.quote }}
-        {{ annotation.comment }}
-      </div>
-    </div>
   </main>
 </template>
 
@@ -57,6 +48,7 @@ h2 {
   display: flex;
   width: 90%;
   margin: auto;
+  margin-bottom: 2em;
 }
 
 main {

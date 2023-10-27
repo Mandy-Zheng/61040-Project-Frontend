@@ -7,6 +7,7 @@ import Multiselect from "@vueform/multiselect";
 import { storeToRefs } from "pinia";
 import { computed, onBeforeMount, ref } from "vue";
 import { capitalizePhrase } from "../../../server/framework/utils";
+
 const { currentUsername, allUsers } = storeToRefs(useUserStore());
 const title = ref<string>("");
 const content = ref<string>("");
@@ -26,8 +27,10 @@ const selectedField = ref<string>("");
 const minimumRating = ref<number>(0);
 const selectedTags = ref<Array<string>>([]);
 const isPublic = ref<boolean>(true);
+const topAnnotators = ref<number>(1);
+const allFields = ref<Array<string>>([]);
+
 async function newPost() {
-  console.log("hey");
   if (isPublic.value) {
     selectedUsers.value.push("");
   }
@@ -40,7 +43,19 @@ async function newPost() {
   await router.push("/feed");
 }
 
-async function addUsersToAudience() {
+async function getAllFields() {
+  try {
+    const fields = await fetchy(`/api/resume/allTags`, "GET");
+    console.log(fields);
+    allFields.value = fields.map((field: any) => {
+      return { label: capitalizePhrase(field), value: field };
+    });
+  } catch (_) {
+    return;
+  }
+}
+
+async function addExpertsToAudience() {
   try {
     const query: Record<string, any> = { field: capitalizePhrase(selectedField.value), minimumRating: minimumRating.value };
     const qualifiedResumes = await fetchy(`/api/resume/filter`, "GET", { query });
@@ -51,9 +66,21 @@ async function addUsersToAudience() {
   }
 }
 
+async function addAnnotatorsToAudience() {
+  try {
+    const qualifiedUsers = await fetchy(`/api/annotation/topReviewers/${topAnnotators.value}`, "GET");
+    const usernames = qualifiedUsers.map((user: any) => user.user);
+    console.log(usernames);
+    selectedUsers.value = [...new Set([...usernames, ...selectedUsers.value])];
+  } catch (_) {
+    return;
+  }
+}
+
 onBeforeMount(async () => {
   try {
     await getPosts();
+    await getAllFields();
   } catch {
     // User is not logged in
   }
@@ -63,58 +90,52 @@ onBeforeMount(async () => {
 <template>
   <div class="form" @submit.prevent="newPost">
     <h2 for="content">Create a Post</h2>
-    <form class="pure-form pure-form-aligned">
+    <form class="">
       <fieldset>
         <div class="pure-control-group post-title">
           <label class="form-label" for="title">Title</label>
           <input type="text" v-model="title" placeholder="Title" required />
         </div>
-        <Multiselect class="multiselect" v-model="selectedUsers" :options="usernames" :mode="'tags'" :searchable="true" :close-on-select="false" />
-        <!-- <div class="post-audience">
+
+        <div class="post-audience">
           <label for="checkbox-radio-option-one" class="pure-checkbox">Make Post Public </label> <input type="checkbox" class="checkbox" id="checkbox-radio-option-one" v-model="isPublic" />
         </div>
-        <div class="annotators" v-if="isPublic">
-          <input class="number-inp" type="number" v-model="minimumRating" min="0" step="1" />
-        </div> -->
-        <div class="pure-controls">
-          <button type="submit" class="pure-button pure-button-primary">Submit</button>
+        <div class="annotators" v-if="!isPublic">
+          <label class="form-label" for="">Add Top Annotators</label>
+          <input class="number-inp" type="number" v-model="topAnnotators" min="0" step="1" />
+          <button class="pure-button pure-button-primary" @click.prevent="addAnnotatorsToAudience">Add</button>
         </div>
-      </fieldset>
-    </form>
-    <!-- <div class="selections">
-      <div class="post-audience" v-if="!isPublic">
-        <div class="experts">
-          <div class="expert-field">
-            <label class="form-label" for="">Experts in</label>
+        <div class="selections">
+          <div class="post-audience" v-if="!isPublic">
+            <div class="experts">
+              <div class="expert-field">
+                <label class="form-label" for="">Experts in</label>
+                <Multiselect v-model="selectedField" :options="allFields" :searchable="true" />
+              </div>
+              <div class="rating">
+                <label class="form-label" for="audience">with rating of</label>
+                <input class="number-inp" type="number" v-model="minimumRating" min="0" placeholder="3.2" />
+              </div>
+              <button class="pure-button pure-button-primary" @click.prevent="addExpertsToAudience">Add</button>
+            </div>
+            <label class="form-label" for="audience">Select Audience</label>
+            <Multiselect class="multiselect" v-model="selectedUsers" :options="usernames" :mode="'tags'" :searchable="true" :close-on-select="false" required />
+          </div>
 
-            <Multiselect v-model="selectedField" :options="allTags" :searchable="true" />
+          <div class="post-tags">
+            <label class="form-label" for="tags">Tags</label>
+            <Multiselect class="multiselect" v-model="selectedTags" :options="allTags" :mode="'tags'" :searchable="true" :close-on-select="false" :create-option="true" />
           </div>
-          <div class="rating">
-            <label class="form-label" for="audience">with rating of</label>
-            <input class="number-inp" type="number" v-model="minimumRating" min="0" placeholder="3.2" />
-          </div>
-          <button class="pure-button pure-button-primary" @click.prevent="addUsersToAudience">Add</button>
         </div>
-        <label class="form-label" for="audience">Select Audience</label>
-        <Multiselect class="multiselect" v-model="selectedUsers" :options="usernames" :mode="'tags'" :searchable="true" :close-on-select="false" />
-      </div>
-
-      <div class="post-tags">
-        <label class="form-label" for="tags">Tags</label>
-        <Multiselect class="multiselect" v-model="selectedTags" :options="allTags" :mode="'tags'" :searchable="true" :close-on-select="false" :create-option="true" />
-      </div>
-    </div>
-    <form class="pure-form pure-form-aligned">
-      <fieldset>
         <div class="pure-control-group post-content">
           <label class="form-label" for="content">Content</label>
           <textarea v-model="content" placeholder="content..." required></textarea>
         </div>
         <div class="pure-controls">
-          <button type="submit" class="pure-button pure-button-primary" @click.prevent="newPost">Submit</button>
+          <button type="submit" class="pure-button pure-button-primary">Submit</button>
         </div>
       </fieldset>
-    </form> -->
+    </form>
   </div>
 </template>
 

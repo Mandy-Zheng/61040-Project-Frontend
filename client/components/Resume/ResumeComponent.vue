@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ValidationModal from "@/components/Validation/ValidationModal.vue";
 import router from "@/router";
 import { useResumeStore } from "@/stores/resume";
 import { useUserStore } from "@/stores/user";
@@ -84,26 +83,30 @@ async function disapprove() {
               <span @click="approve"
                 ><img v-if="likeStatus !== STATUS.LIKED" class="like" src="../../assets/images/unactivelike.svg" /> <img v-else class="like" src="../../assets/images/activelike.svg"
               /></span>
-              <p @click="openApprovalModal" class="information-scent">({{ props.approvals.length }})</p>
+              <p class="information-scent tooltip">
+                ({{ props.approvals.length }})
+                <span class="tooltiptext">
+                  <div v-for="user in props.approvals.length ? props.approvals : ['No Likes']" :key="user">{{ user }}</div>
+                </span>
+              </p>
             </div>
             <div class="disapprovals">
               <span @click="disapprove"
                 ><img v-if="likeStatus !== STATUS.DISLIKED" class="dislike" src="../../assets/images/unactivelike.svg" /> <img v-else class="dislike" src="../../assets/images/activelike.svg"
               /></span>
-              <p @click="openDisapprovalModal" class="information-scent">({{ props.disapprovals.length }})</p>
-              <teleport to="body">
-                <ValidationModal
-                  :show="showValidationModal"
-                  :title="showApprovals ? 'Liked By:' : 'Disliked By:'"
-                  :userList="showApprovals ? props.approvals : props.disapprovals"
-                  @closeValidation="showValidationModal = false"
-                />
-              </teleport>
+              <p class="information-scent tooltip">
+                ({{ props.disapprovals.length }})
+                <span class="tooltiptext">
+                  <div v-for="user in props.disapprovals.length ? props.disapprovals : ['No Dislikes']" :key="user">{{ user }}</div>
+                </span>
+              </p>
             </div>
           </div>
         </div>
       </div>
-      <p class="author">Author: {{ props.author }}</p>
+      <p class="author">
+        Author: <RouterLink :to="{ path: `/searchProfiles`, query: { username: props.author } }"> {{ props.author }}</RouterLink>
+      </p>
     </div>
     <div class="content">
       <!-- TODO -->
@@ -238,5 +241,41 @@ i {
 
 .section {
   text-decoration: underline;
+}
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+  height: fit-content;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: fit-content;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  top: 100%;
+  left: 50%;
+  margin-left: -60px;
+}
+
+.tooltip .tooltiptext::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent black transparent;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
 }
 </style>

@@ -1,8 +1,13 @@
 <script setup lang="ts">
+import { useUserStore } from "@/stores/user";
+import { storeToRefs } from "pinia";
+import { ref } from "vue";
+
 const props = defineProps(["postId", "note"]);
 
-// const annotations = ref<Array<any>>([]);
+const { allUsers } = storeToRefs(useUserStore());
 const emit = defineEmits(["editAnnotations"]);
+const username = ref<string>(allUsers.value.find((user) => user._id === props.note.author).username ?? "DELETED_USER");
 async function editAnnotations() {
   emit("editAnnotations", props.note);
 }
@@ -11,16 +16,35 @@ async function editAnnotations() {
 <template>
   <div class="note">
     <div class="note-header">
-      <h4>{{ props.note.quote }}</h4>
-      <div class="edit-btn" @click="editAnnotations">
-        <img src="../../../client/assets/images/pencil.svg" />
-      </div>
+      <span>
+        <RouterLink class="user-link" :to="{ path: `/searchProfiles`, query: { username: username } }"> {{ username }}</RouterLink
+        >&nbsp; quoted on "{{ props.note.quote }}"
+        <div class="edit-btn" @click="editAnnotations">
+          <img src="../../../client/assets/images/pencil.svg" />
+        </div>
+      </span>
+      <h4>{{ props.note.comment }}</h4>
     </div>
-    {{ props.note.comment }}
+
+    {{ new Date(props.note.dateUpdated).toDateString() }}
   </div>
 </template>
 
 <style scoped>
+h4 {
+  justify-self: start;
+  font-size: 18px;
+}
+.user-link {
+  display: flex;
+  justify-content: start;
+  width: fit-content;
+}
+span {
+  display: flex;
+  padding-top: 0.5em;
+  font-size: larger;
+}
 .note {
   display: flex;
   flex-wrap: wrap;

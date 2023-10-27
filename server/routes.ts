@@ -122,6 +122,23 @@ class Routes {
       return { rating: calculateRating(res.initialRating, validations[index]), resume: res };
     });
   }
+
+  /**
+   *
+   * @param session session
+   * @returns all tags in current resumes
+   */
+  @Router.get("/resume/allTags")
+  async getResumeTags(session: WebSessionDoc) {
+    WebSession.getUser(session);
+    const resumes = await Resume.getByAuthor();
+    const fields = new Set();
+    for (const resume of resumes) {
+      fields.add(resume.field);
+    }
+    return [...fields];
+  }
+
   @Router.get("/resume/filter")
   async getResumeByFilter(session: WebSessionDoc, username?: string, field?: string, minimumRating?: number) {
     WebSession.getUser(session);
@@ -311,12 +328,12 @@ class Routes {
         authorToResume.set(authors[index], resumes);
       }
     }
-    console.log(posts);
+    const audienceUsernames = await Promise.all(posts.map((post) => (post.audience.includes("") ? [""] : User.idsToUsernames(post.audience.map((user) => new ObjectId(user))))));
     return posts.map((post, index) => {
       const postRelatedResumes = authorToResume.get(authors[index]) ?? [];
       const ratings = postRelatedResumes.filter((res) => post.tags.includes(res.field)).map((res) => res.initialRating);
       const averageRating = postRelatedResumes.length === 0 || ratings.length === 0 ? 0 : ratings.reduce((partialSum, rate) => partialSum + rate, 0) / ratings.length;
-      return { author: authors[index], rating: calculateRating(averageRating, validations[index]), post: post };
+      return { author: authors[index], rating: calculateRating(averageRating, validations[index]), post: { ...post, audience: audienceUsernames[index] } };
     });
   }
 
@@ -552,10 +569,11 @@ class Routes {
     const validPostIdsSet = new Set(validIds.map((id) => id.toString()));
     const validPostIds = [...validPostIdsSet].map((id) => new ObjectId(id));
     const validPost = await Promise.all(validPostIds.map((id) => ExclusivePost.getById(id, user)));
+    const audienceUsernames = await Promise.all(validPost.map((post) => (post.audience.includes("") ? [""] : User.idsToUsernames(post.audience.map((user) => new ObjectId(user))))));
     const usernames = await User.idsToUsernames(validPost.map((post) => post.author));
     const postToNotes = validPostIds.map((id, idx) => {
       const postNotes = notes.filter((note) => note.original.toString() === id.toString());
-      return { post: { ...validPost[idx], author: usernames[idx] }, annotations: postNotes };
+      return { post: { ...validPost[idx], author: usernames[idx], audience: audienceUsernames[idx] }, annotations: postNotes };
     });
 
     const deletedPostNotes = { post: null, annotations: notes.filter((note) => !validPostIdsSet.has(note.original.toString())) };
@@ -601,7 +619,7 @@ class Routes {
    */
   @Router.get("/annotation/topReviewers/:top")
   async suggestMostActiveReviewers(session: WebSessionDoc, top: number) {
-    WebSession.getUser(session);
+    const currentUserId = WebSession.getUser(session);
     const num = Number(top);
     if (isNaN(num)) {
       throw new BadValuesError("Expected a number");
@@ -609,7 +627,8 @@ class Routes {
     if (!Number.isInteger(num) || !(num > 0)) {
       throw new BadValuesError("Expected an integer greater than 0");
     }
-    const users = await User.getUsers();
+    const users = (await User.getUsers()).filter((user) => user._id.toString() !== currentUserId.toString());
+    console.log(users);
     const annotationCounts = await Promise.all(users.map((user) => Annotation.getAnnotationCountByAuthor(user._id)));
     const activeUsernames = await User.idsToUsernames(users.map((user) => user._id));
     const userCounts = activeUsernames.map((username, idx) => {

@@ -3,7 +3,7 @@ import { fetchy } from "@/utils/fetchy";
 import { onBeforeMount, ref } from "vue";
 
 const props = defineProps(["postId", "isApprovalMode"]);
-const validations = ref<Map<string, Array<any>>>();
+const validations = ref<Map<string, Array<any>>>(new Map());
 
 async function getValidatorCredentials() {
   try {
@@ -12,18 +12,19 @@ async function getValidatorCredentials() {
       ? await fetchy(`/api/validation/approval/exclusivepost/${props.postId}`, "GET")
       : await fetchy(`/api/validation/disapproval/exclusivepost/${props.postId}`, "GET");
     const validationToField = new Map();
+    console.log(rawValidationData);
     for (const data of rawValidationData) {
-      const { field, approvers } = data;
-      for (const userRatings of approvers) {
+      const { field } = data;
+      const validators = props.isApprovalMode ? data.approvers : data.disapprovers;
+      for (const userRatings of validators) {
         const { user, rating } = userRatings;
-        console.log(user);
         const allRating = validationToField.get(user) ?? [];
         allRating.push({ field, rating });
         validationToField.set(user, allRating);
       }
     }
-    console.log(validationToField);
     validations.value = validationToField;
+    console.log(validations.value);
   } catch (error) {
     return;
   }
@@ -40,87 +41,75 @@ onBeforeMount(async () => {
 <template>
   <div class="validation-info">
     <div class="validation-list">
-      <div class="note-header" v-for="[key, val] in validations" :key="key">
-        <h4>User: {{ key }}</h4>
-        <div v-for="topic in val" :key="topic">{{ topic.field }}: {{ topic.rating }}</div>
-      </div>
-      <!-- {{ props.note.comment }}
-  </div>
-    </div>
-    <button class="annotate-btn" @click="toggleEditMode">Annotate</button>  -->
+      <span v-if="validations.size > 0">
+        <div class="validator" v-for="[key, val] in validations" :key="key">
+          <h4>
+            User: <RouterLink :to="{ path: `/searchProfiles`, query: { username: key } }"> {{ key }}</RouterLink>
+          </h4>
+          <span class="tags">
+            <div class="tag-pill" v-for="topic in val" :key="topic">{{ topic.field }}: {{ topic.rating }}</div>
+          </span>
+        </div>
+      </span>
+
+      <i v-else>No {{ isApprovalMode ? "Approvers" : "Disapprovers" }}</i>
     </div>
   </div>
 </template>
 
 <style scoped>
-textarea::selection {
-  background-color: cadetblue;
-  color: red;
+h4 {
+  font-size: 16px;
+  margin: 0;
 }
-.post-menu {
-  border: 2px solid #eeeeee;
+i {
+  justify-self: center;
+  font-size: 24px;
+  margin-top: 2em;
 }
-.annotations {
+span {
+  width: 100%;
+}
+.validator {
   display: flex;
-  height: 500px;
   flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  background-color: #eeeeee;
-  flex: 1;
-  padding-top: 1em;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 4px;
+  width: 85%;
+  margin: 0px 16px 16px 16px;
+  text-align: center;
+  padding: 1em;
+  position: relative;
+}
+.tags {
+  display: flex;
 }
 
+.tag-pill {
+  display: flex;
+  border: 1px solid black;
+  border-radius: 36px;
+  padding: 4px;
+  font-weight: 50;
+  width: fit-content;
+  margin: 0.5em 0.5em 0em 0em;
+  background-color: #bde8f1;
+  border: 1px solid #bde8f1;
+  color: black;
+}
 .validation-info {
   display: flex;
   flex-direction: column;
+  align-items: center;
   flex: 3;
   font-size: 12px;
 }
 
-.annotation-panel,
-.annotation-list {
-  position: relative;
-  display: flex;
+.validation-list {
+  padding-top: 1em;
+  justify-content: center;
   width: 100%;
-  flex-direction: column;
-  align-items: center;
-}
-
-.annotation-list {
-  height: 320px;
-  overflow-x: clip;
-  overflow-y: scroll;
-  margin-bottom: 1em;
-}
-
-.menu-btn {
-  border: 0px;
-  padding: 0.5em;
-  margin-bottom: 0;
-  background-color: white;
-  border: 2px solid #eeeeee;
-}
-
-.active {
-  border: 0px;
-  padding: 0.5em;
-  margin-bottom: 0;
-  background-color: #eeeeee;
-  border: 2px solid #eeeeee;
-}
-.menu-btn:hover {
-  background-color: #eeeeee;
-}
-
-textarea {
-  height: 100%;
-  resize: none;
-  cursor: text;
-}
-
-.annotate-btn {
   display: flex;
-  margin: 1em;
 }
 </style>

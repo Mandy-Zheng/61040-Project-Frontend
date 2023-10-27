@@ -1,31 +1,54 @@
 <script setup lang="ts">
 import ResumeComponent from "@/components/Resume/ResumeComponent.vue";
+import { useUserStore } from "@/stores/user";
 import { fetchy } from "@/utils/fetchy";
-import { onBeforeMount, ref } from "vue";
+import Multiselect from "@vueform/multiselect";
+import { storeToRefs } from "pinia";
+import { computed, onBeforeMount, ref } from "vue";
 import { capitalizePhrase } from "../../../server/framework/utils";
 
+const { allUsers } = storeToRefs(useUserStore());
 const props = defineProps(["user"]);
 const username = ref<string>(props.user);
 const field = ref<string>("");
 const rating = ref<number>(0);
 const resumeResults = ref<Array<any>>([]);
 const validationResults = ref<Array<any>>([]);
+const allFields = ref<Array<string>>([]);
+const allUsernames = computed(() =>
+  allUsers.value.map((user: any) => {
+    return { label: user.username, value: user.username };
+  }),
+);
 
-const searchResume = async () => {
+async function searchResume() {
   try {
-    const query: Record<string, any> = { username: username.value, field: capitalizePhrase(field.value), minimumRating: rating.value };
+    console.log(username.value);
+    const query: Record<string, any> = { username: username.value ?? "", field: capitalizePhrase(field.value ?? ""), minimumRating: rating.value };
     resumeResults.value = await fetchy(`/api/resume/filter`, "GET", { query });
     validationResults.value = await Promise.all(resumeResults.value.map((resume) => fetchy(`/api/validation/resume/${resume.resume._id}`, "GET")));
   } catch (_) {
     return;
   }
-};
+}
+
+async function getAllFields() {
+  try {
+    const fields = await fetchy(`/api/resume/allTags`, "GET");
+    console.log(fields);
+    allFields.value = fields.map((field: any) => {
+      return { label: capitalizePhrase(field), value: field };
+    });
+  } catch (_) {
+    return;
+  }
+}
 
 onBeforeMount(async () => {
-  console.log(props.user);
   if (props.user) {
     await searchResume();
   }
+  await getAllFields();
 });
 </script>
 
@@ -33,11 +56,11 @@ onBeforeMount(async () => {
   <div class="search">
     <div class="filters">
       <label>Username:</label>
-      <input type="text" v-model="username" placeholder="TimTheBeaver" />
+      <Multiselect class="multiselect" v-model="username" :options="allUsernames" :searchable="true" required />
     </div>
     <div class="filters">
       <label>Field:</label>
-      <input type="text" v-model="field" placeholder="Biology" />
+      <Multiselect class="multiselect" v-model="field" :options="allFields" :searchable="true" :create-option="true" />
     </div>
     <div class="filters">
       <label>Minimum Rating:</label>
@@ -89,11 +112,10 @@ h2 {
   width: 50%;
 }
 
-.fields {
+.multiselect {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  width: 50%;
 }
 
 .field-pill {
@@ -124,6 +146,13 @@ h2 {
 .filters {
   display: flex;
   flex-direction: column;
+  width: 20%;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  width: 20%;
 }
 
 .search-btn {

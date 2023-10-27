@@ -8,7 +8,6 @@ mermaid.run({ querySelector: ".mermaid" });
 async function getMap() {
   try {
     const map = await fetchy(`/api/depmap`, "GET");
-    console.log(map);
   } catch (_) {
     return;
   }
@@ -19,9 +18,9 @@ async function getMap() {
 //   await router.push({ name: "PostFeed", query: { id: "id 123" } });
 // };
 
-const goToPost = function () {
-  console.log("ran");
-};
+// const goToPost = function () {
+//   console.log("ran");
+// };
 const mario = "Hey";
 onMounted(() => {
   mermaid.run({ querySelector: ".mermaid" });

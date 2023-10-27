@@ -40,32 +40,19 @@ onBeforeMount(async () => {
   </header>
   <div class="content" v-if="isLoggedIn">
     <div class="sidenavbar">
+      <h3 class="menu-heading">MasterLink</h3>
       <div class="sidebarlinks">
-        <h3>My Items</h3>
-        <div>
-          <RouterLink :to="{ name: 'PostFeed' }" :class="{ underline: currentRouteName == 'PostFeed' }"> Posts </RouterLink> <br />
-          <RouterLink :to="{ name: 'Profile' }" :class="{ underline: currentRouteName == 'Profile' }">My Resumes </RouterLink> <br />
-          <RouterLink :to="{ name: 'MyAnnotations' }" :class="{ underline: currentRouteName == 'MyAnnotations' }">My Annotations </RouterLink><br />
-          <RouterLink :to="{ name: 'Settings' }" :class="{ underline: currentRouteName == 'Settings' }"> Settings </RouterLink><br />
+        <div class="my-menu">
+          <RouterLink :to="{ name: 'PostFeed' }" class="menu-link" :class="{ underline: currentRouteName == 'PostFeed' }"> Feed </RouterLink>
+          <RouterLink :to="{ name: 'Profile' }" class="menu-link" :class="{ underline: currentRouteName == 'Profile' }">My Resumes </RouterLink>
+          <RouterLink :to="{ name: 'MyAnnotations' }" class="menu-link" :class="{ underline: currentRouteName == 'MyAnnotations' }">My Annotations </RouterLink>
         </div>
-        <!-- <div>My Posts</div>
-        <div>My Annotations</div>
-        <div>My Course Maps</div> -->
 
-        <h3>Search</h3>
         <div>
-          <RouterLink :to="{ name: 'profileSearch' }" :class="{ underline: currentRouteName == 'User Profiles' }"> User Profiles </RouterLink>
-          <!-- <div>Find Posts</div>
-          <div>Find Course Maps</div> -->
+          <RouterLink :to="{ name: 'profileSearch' }" class="menu-link" :class="{ underline: currentRouteName == 'User Profiles' }"> Other Resumes </RouterLink>
+          <RouterLink :to="{ name: 'Settings' }" class="menu-link" :class="{ underline: currentRouteName == 'Settings' }"> Settings </RouterLink>
         </div>
       </div>
-      <!-- <RouterLink :to="{ name: 'Home' }" :class="{ underline: currentRouteName == 'Home' }"> Home </RouterLink>
-
-      <RouterLink :to="{ name: 'Profile' }" :class="{ underline: currentRouteName == 'Profile' }"> Profile </RouterLink>
-
-      <RouterLink :to="{ name: 'Settings' }" :class="{ underline: currentRouteName == 'Settings' }"> Settings </RouterLink>
-
-      <RouterLink :to="{ name: 'Login' }" :class="{ underline: currentRouteName == 'Login' }"> Login </RouterLink> -->
     </div>
     <div class="middle">
       <RouterView />
@@ -79,10 +66,17 @@ onBeforeMount(async () => {
 <style scoped>
 @import "./assets/toast.css";
 
-nav {
-  background-color: lightgray;
-  display: flex;
-  align-items: center;
+.my-menu {
+  border-bottom: 1px solid #819fa7;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+.menu-link {
+  color: #ffffff;
+  font-family: "open sans";
+  display: block;
+  font-size: 18px;
+  padding: 0.5em;
 }
 
 h1 {
@@ -96,23 +90,10 @@ h1 {
   gap: 0.5em;
 }
 
-img {
-  height: 2em;
-}
-
 a {
   font-size: large;
   color: black;
   text-decoration: none;
-}
-
-ul {
-  list-style-type: none;
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  flex-direction: row;
-  gap: 1em;
 }
 
 .underline {
@@ -125,10 +106,21 @@ body {
   min-height: 100vh;
 }
 
+.menu-heading {
+  padding-top: 1em;
+  padding-bottom: 0.5em;
+  border-bottom: 1px solid #819fa7;
+  margin: 0 0 1em 0;
+}
+
 .sidenavbar {
-  flex: 0 2 150px;
-  background-color: #c28282;
+  flex: 0 2 200px;
+  background-color: #557373;
   min-height: 100vh;
+  align-content: center;
+  color: #f2efea;
+  font-family: "open sans";
+  font-size: 22px;
 }
 .sidebarlinks {
   position: sticky;
@@ -136,7 +128,6 @@ body {
   top: 0px;
 }
 .middle {
-  margin-top: 4em;
   flex: 1 1 300px;
   min-height: 100vh;
 }
@@ -146,11 +137,9 @@ body {
 }
 
 .sidenavbar {
-  padding-top: 25px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 25%;
 }
 
 .page {

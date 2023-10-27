@@ -2,11 +2,11 @@
 import router from "@/router";
 import { useResumeStore } from "@/stores/resume";
 import { storeToRefs } from "pinia";
-import { computed, onBeforeMount, ref } from "vue";
+import { computed, ref } from "vue";
 import { capitalizePhrase } from "../../../server/framework/utils";
 
 const resumeStore = useResumeStore();
-const { createResume, editResume, selectResumeToEdit, resetStore } = resumeStore;
+const { createResume, editResume, selectResumeToEdit } = resumeStore;
 const { currentUserResumes, editingResume } = storeToRefs(resumeStore);
 
 const props = defineProps(["field"]);
@@ -18,8 +18,8 @@ const allResumeFields = computed(() => [...currentUserResumes.value.map((resume)
 let selectedForm = ref<string>(editingResume.value);
 let currentRes = currentUserResumes.value.filter((resume) => resume.resume.field === editingResume.value);
 let curField = ref<string>(editingResume.value === "New" ? "" : editingResume.value);
-let work = ref<Array<string>>(currentRes[0]?.resume.work ?? [""]);
-let school = ref<Array<string>>(currentRes[0]?.resume.school ?? [""]);
+let work = ref<Array<string>>(currentRes[0]?.resume.work.length > 0 ? currentRes[0]?.resume.work : [""]);
+let school = ref<Array<string>>(currentRes[0]?.resume.school.length > 0 ? currentRes[0]?.resume.school : [""]);
 
 const addWorkInput = () => {
   work.value.push("");
@@ -48,31 +48,26 @@ function changeForm(form: string) {
       school.value = schoolList.length === 0 ? [""] : schoolList;
     }
   }
+  window.scrollTo(0, 0);
 }
 
 const submitNewResume = async () => {
   const body = { field: capitalizePhrase(curField.value), work: work.value.filter((work) => work.length > 0), school: school.value.filter((school) => school.length > 0) };
-  try {
-    await createResume(body);
-  } catch (_) {
-    return;
-  }
-  await router.push("/profile");
+  await router.push("/profile").then(async () => await createResume(body));
 };
 
 const updateResume = async () => {
   const update = { work: work.value, school: school.value };
-  await editResume(selectedForm.value, update);
-  await router.push("/profile");
+  await router.push("/profile").then(async () => await editResume(selectedForm.value, update));
 };
 
-onBeforeMount(async () => {
-  try {
-    await resetStore();
-  } catch {
-    // User is not logged in
-  }
-});
+// onBeforeMount(async () => {
+//   try {
+//     await resetStore();
+//   } catch {
+//     // User is not logged in
+//   }
+// });
 </script>
 
 <template>
@@ -125,6 +120,15 @@ onBeforeMount(async () => {
   padding: 1em;
   padding-left: 24px;
 }
+.add-btn {
+  border-radius: 32px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.add-btn:hover {
+  background-color: #bfafaf;
+}
 
 .fields {
   display: flex;
@@ -139,21 +143,29 @@ onBeforeMount(async () => {
 }
 
 .field-pill {
-  border: 1px solid black;
+  border: 1px solid #d8c6ba;
   padding: 4px;
   border-radius: 32px;
   margin: 8px 8px 4px 0px;
+  background-color: #d8c6ba;
+  color: black;
 }
 
 .active {
-  background-color: coral;
+  background-color: #557373;
+  color: #f2efea;
+  border: 1px solid #557373;
 }
 .field-pill:hover {
-  background-color: coral;
+  background-color: #557373;
+  color: #f2efea;
 }
 
 #field-input {
   margin-left: 12px;
+  padding: 0.5em;
+  border-radius: 4px;
+  border: 1px solid black;
 }
 .experience {
   display: flex;
@@ -168,6 +180,7 @@ textarea {
   padding: 0.5em;
   border-radius: 4px;
   resize: none;
+  background-color: #dfe5f3;
 }
 .btn {
   display: flex;

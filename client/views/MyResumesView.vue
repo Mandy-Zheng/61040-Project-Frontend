@@ -2,7 +2,7 @@
 import ResumeComponent from "@/components/Resume/ResumeComponent.vue";
 import { useResumeStore } from "@/stores/resume";
 import { storeToRefs } from "pinia";
-import { computed, onBeforeMount } from "vue";
+import { computed } from "vue";
 import { capitalize } from "../../server/framework/utils";
 const resumeStore = useResumeStore();
 const { resetStore } = useResumeStore();
@@ -13,13 +13,13 @@ function scrollToResume(field: string) {
   const resume = document.getElementById(field);
   resume?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
-onBeforeMount(async () => {
-  try {
-    await resetStore();
-  } catch {
-    // User is not logged in
-  }
-});
+// onBeforeMount(async () => {
+//   try {
+//     await resetStore();
+//   } catch {
+//     // User is not logged in
+//   }
+// });
 </script>
 
 <template>
