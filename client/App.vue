@@ -49,7 +49,7 @@ onBeforeMount(async () => {
         </div>
 
         <div>
-          <RouterLink :to="{ name: 'profileSearch' }" class="menu-link" :class="{ underline: currentRouteName == 'User Profiles' }"> Other Resumes </RouterLink>
+          <RouterLink :to="{ name: 'profileSearch' }" class="menu-link" :class="{ underline: currentRouteName == 'profileSearch' }"> Other Resumes </RouterLink>
           <RouterLink :to="{ name: 'Settings' }" class="menu-link" :class="{ underline: currentRouteName == 'Settings' }"> Settings </RouterLink>
         </div>
       </div>
