@@ -628,7 +628,6 @@ class Routes {
       throw new BadValuesError("Expected an integer greater than 0");
     }
     const users = (await User.getUsers()).filter((user) => user._id.toString() !== currentUserId.toString());
-    console.log(users);
     const annotationCounts = await Promise.all(users.map((user) => Annotation.getAnnotationCountByAuthor(user._id)));
     const activeUsernames = await User.idsToUsernames(users.map((user) => user._id));
     const userCounts = activeUsernames.map((username, idx) => {
