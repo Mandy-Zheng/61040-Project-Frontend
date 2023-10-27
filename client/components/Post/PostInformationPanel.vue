@@ -5,7 +5,7 @@ import { onBeforeMount, ref } from "vue";
 import { fetchy } from "../../utils/fetchy";
 import ValidatorCredentialPanel from "../Validation/ValidatorCredentialPanel.vue";
 
-const props = defineProps(["post", "rating", "author", "notes", "status"]);
+const props = defineProps(["post", "rating", "author", "notes", "status", "approvals", "disapprovals"]);
 const noteId = ref<string>("");
 const quote = ref<string>("");
 const comment = ref<string>("");
@@ -20,35 +20,6 @@ const enum MENU_MODE {
 }
 
 const selectedMenu = ref<MENU_MODE>(MENU_MODE.COMMENTS);
-
-const approvals = ref<Map<string, Array<any>>>(new Map());
-const disapprovals = ref<Map<string, Array<any>>>(new Map());
-async function getValidatorCredentials(isApprovalMode: boolean) {
-  try {
-    const rawValidationData = isApprovalMode
-      ? await fetchy(`/api/validation/approval/exclusivepost/${props.post._id}`, "GET")
-      : await fetchy(`/api/validation/disapproval/exclusivepost/${props.post._id}`, "GET");
-    const validationToField = new Map();
-    console.log(rawValidationData);
-    for (const data of rawValidationData) {
-      const { field } = data;
-      const validators = isApprovalMode ? data.approvers : data.disapprovers;
-      for (const userRatings of validators) {
-        const { user, rating } = userRatings;
-        const allRating = validationToField.get(user) ?? [];
-        allRating.push({ field, rating });
-        validationToField.set(user, allRating);
-      }
-    }
-    if (isApprovalMode) {
-      approvals.value = validationToField;
-    } else {
-      disapprovals.value = validationToField;
-    }
-  } catch (error) {
-    return new Map();
-  }
-}
 async function getPostAnnotations() {
   isNewNote.value = true;
   quote.value = "";
@@ -87,8 +58,6 @@ async function editAnnotations(note: any) {
 onBeforeMount(async () => {
   try {
     await getPostAnnotations();
-    await getValidatorCredentials(true);
-    await getValidatorCredentials(false);
   } catch {
     // User is not logged in
   }
@@ -123,10 +92,10 @@ onBeforeMount(async () => {
     </div>
 
     <div v-if="selectedMenu === MENU_MODE.APPROVALS" class="approvals">
-      <ValidatorCredentialPanel :postId="props.post._id" :isApprovalMode="true" :key="props.status" />
+      <ValidatorCredentialPanel :postId="props.post._id" :isApprovalMode="true" :key="props.status" :userList="props.approvals" />
     </div>
     <div v-if="selectedMenu === MENU_MODE.DISAPPROVALS" class="disapprovals">
-      <ValidatorCredentialPanel :postId="props.post._id" :isApprovalMode="false" :key="props.status" />
+      <ValidatorCredentialPanel :postId="props.post._id" :isApprovalMode="false" :key="props.status" :userList="props.disapprovals" />
     </div>
   </div>
 </template>

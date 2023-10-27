@@ -9,19 +9,26 @@ import { computed, onBeforeMount, ref } from "vue";
 const postStore = usePostStore();
 const { getPosts } = postStore;
 const { viewablePosts } = storeToRefs(postStore);
+const { isLoggedIn } = storeToRefs(useUserStore());
 
 const { allUsers } = storeToRefs(useUserStore());
 const selectedTags = ref<Array<string>>([]);
 const allTags = computed(() => [...new Set(viewablePosts.value.map((post) => post.post.tags).reduce((acc, curr) => acc.concat(curr), []))]);
 const selectedUser = ref<string>("");
 const rating = ref<number>(0);
-const posts = ref<Array<any>>(viewablePosts.value);
+const posts = ref<Array<any>>(viewablePosts.value.reverse());
 
 const allUsernames = computed(() =>
   allUsers.value.map((user: any) => {
     return { label: user.username, value: user.username };
   }),
 );
+const refresh = () => {
+  posts.value = viewablePosts.value.reverse();
+  selectedTags.value = [];
+  selectedUser.value = "";
+  rating.value = 0;
+};
 
 const searchPost = () => {
   let filterPost = viewablePosts.value;
@@ -29,14 +36,11 @@ const searchPost = () => {
     filterPost = filterPost.filter((postInfo) => postInfo.author === selectedUser.value);
   }
   if (rating.value !== 0) {
-    console.log(rating.value, filterPost);
     filterPost = filterPost.filter((postInfo) => postInfo.rating >= rating.value);
   }
   if (selectedTags.value) {
-    console.log(selectedTags.value, filterPost);
     filterPost = filterPost.filter((postInfo) => {
       const postTags = new Set(postInfo.post.tags);
-      console.log(postInfo.tags);
       return selectedTags.value.every((tag) => postTags.has(tag));
     });
   }
@@ -53,7 +57,7 @@ onBeforeMount(async () => {
 </script>
 
 <template>
-  <main>
+  <main v-if="isLoggedIn">
     <span class="header">
       <h1>My Posts</h1>
       <router-link to="/createPost" custom v-slot="{ navigate }">
@@ -76,7 +80,7 @@ onBeforeMount(async () => {
       <button type="submit" class="search-btn" @click="searchPost">Search Resumes</button>
     </div>
     <div class="post-list" v-for="post in posts" :key="post">
-      <PostComponent :post="post.post" :rating="post.rating" :author="post.author" />
+      <PostComponent :post="post.post" :rating="post.rating" :author="post.author" @refresh="refresh" />
     </div>
   </main>
 </template>
@@ -90,15 +94,12 @@ h2 {
   font-size: 36px;
   text-align: center;
 }
-label {
-}
 
 h2 {
   margin-bottom: 0;
   margin-top: 0;
 }
-.multiselect {
-}
+
 .rating {
   width: fit-content;
 }

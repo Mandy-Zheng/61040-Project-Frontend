@@ -72,8 +72,8 @@ const updateResume = async () => {
 
 <template>
   <div class="form">
-    <h2 for="content">Resume</h2>
-    <p>Want to edit an existing resume instead?</p>
+    <h2 for="content">Resume List Updates</h2>
+    <p>Want to edit another existing resume instead?</p>
     <div class="fields">
       <div class="field-pill" :class="isSelected(fieldSelection)" v-for="fieldSelection in allResumeFields" :key="fieldSelection" @click="changeForm(fieldSelection)">
         {{ fieldSelection }}
@@ -98,19 +98,22 @@ const updateResume = async () => {
 
     <div class="btn">
       <router-link to="/profile" custom v-slot="{ navigate }">
-        <button @click="navigate" role="link" class="pure-button-primary pure-button">Cancel</button>
+        <button @click="navigate" role="link" class="cancel-btn pure-button-primary pure-button">Cancel</button>
       </router-link>
       <div v-if="selectedForm === 'New'">
-        <button type="submit" class="pure-button-primary pure-button" @click="submitNewResume">Create Resume</button>
+        <button type="submit" class="submit-btn pure-button-primary pure-button" @click="submitNewResume">Create Resume</button>
       </div>
       <div v-else>
-        <button type="submit" class="pure-button-primary pure-button" @click="updateResume">Update Resume</button>
+        <button type="submit" class="submit-btn pure-button-primary pure-button" @click="updateResume">Update Resume</button>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+* {
+  font-family: "open sans";
+}
 .form {
   display: flex;
   background-color: var(--base-bg);
@@ -185,5 +188,12 @@ textarea {
 .btn {
   display: flex;
   justify-content: space-between;
+}
+
+.submit-btn {
+  background-color: #557373;
+}
+.cancel-btn {
+  background-color: #557373;
 }
 </style>

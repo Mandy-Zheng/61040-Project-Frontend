@@ -3,7 +3,6 @@ import { storeToRefs } from "pinia";
 import { createRouter, createWebHistory } from "vue-router";
 import CreateResumeForm from "../components/Resume/CreateResumeForm.vue";
 import CreateNewPostView from "../views/CreateNewPostView.vue";
-import DependencyMapView from "../views/DependencyMapView.vue";
 import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
 import MyAnnotationsView from "../views/MyAnnotationsView.vue";
@@ -58,27 +57,14 @@ const router = createRouter({
       component: CreateResumeForm,
       meta: { requiresAuth: true },
     },
-    // {
-    //   path: "/searchProfiles",
-    //   name: "profileSearch",
-    //   component: SearchView,
-    //   //children: [{ path: "", name: "profileSearch", component: SearchView }],
-    //   meta: { requiresAuth: true },
-    // },
+
     {
       path: "/searchProfiles",
       name: "profileSearch",
       component: SearchView,
+      meta: { requiresAuth: true },
+    },
 
-      //children: [{ path: "", name: "profileSearch", component: SearchView }],
-      meta: { requiresAuth: true },
-    },
-    {
-      path: "/depmaps",
-      name: "DependencyMaps",
-      component: DependencyMapView,
-      meta: { requiresAuth: true },
-    },
     {
       path: "/feed",
       name: "PostFeed",
@@ -86,12 +72,7 @@ const router = createRouter({
       props: true,
       meta: { requiresAuth: true },
     },
-    // {
-    //   path: "/myposts",
-    //   name: "MyPosts",
-    //   component: MyPostsView,
-    //   meta: { requiresAuth: true },
-    // },
+
     {
       path: "/myannotations",
       name: "MyAnnotations",

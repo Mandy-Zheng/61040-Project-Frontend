@@ -10,6 +10,7 @@ const props = defineProps(["post", "rating", "author", "notes"]);
 
 const { currentUsername } = storeToRefs(useUserStore());
 const { deletePost } = usePostStore();
+const emit = defineEmits(["refresh"]);
 const enum STATUS {
   LIKED,
   DISLIKED,
@@ -18,6 +19,7 @@ const enum STATUS {
 
 const approvals = ref<Array<any>>([]);
 const disapprovals = ref<Array<any>>([]);
+
 const likeStatus = ref<STATUS>(STATUS.NEUTRAL);
 const showDeleteModal = ref<boolean>(false);
 const audience = ref<Array<string>>(props.post.audience.includes("") ? ["Public to everyone"] : props.post.audience);
@@ -62,6 +64,7 @@ async function disapprove() {
 async function confirmDeletePost() {
   showDeleteModal.value = false;
   await deletePost(props.post._id);
+  emit("refresh");
 }
 
 onBeforeMount(async () => {
@@ -85,7 +88,7 @@ onBeforeMount(async () => {
           <div class="tooltip">
             <img class="tooltip audience" src="../../assets/images/people.svg" />
             <span class="tooltiptext">
-              <div v-for="member in audience" :key="member">{{ member }}</div>
+              <p v-for="member in audience" :key="member">{{ member }}</p>
             </span>
           </div>
         </span>
@@ -102,7 +105,7 @@ onBeforeMount(async () => {
           >
         </div>
 
-        <p>{{ props.post.content }}</p>
+        <p class="content">{{ props.post.content }}</p>
       </div>
       <div class="footer">
         <div class="validation">
@@ -132,7 +135,7 @@ onBeforeMount(async () => {
         <p class="date">Created: {{ new Date(props.post.dateCreated).toDateString() }}</p>
       </div>
     </div>
-    <PostInformationPanel :post="post" :rating="rating" :author="author" :notes="notes" :status="likeStatus" />
+    <PostInformationPanel :post="post" :rating="rating" :author="author" :notes="notes" :status="likeStatus" :approvals="approvals" :disapprovals="disapprovals" />
   </div>
 </template>
 
@@ -154,6 +157,10 @@ onBeforeMount(async () => {
 .validation {
   display: flex;
   position: relative;
+}
+
+.content {
+  font-size: 18px;
 }
 .footer {
   display: flex;
@@ -186,7 +193,6 @@ h3 {
 }
 .information-scent {
   margin: 0;
-  text-decoration: underline;
   color: rgb(45, 49, 169);
   cursor: pointer;
 }
@@ -299,8 +305,12 @@ h2 {
   height: fit-content;
 }
 .tooltiptext {
-  width: 150px;
-  padding: 15px 0px;
+  width: 100px;
+  padding: 4px 0px;
+}
+.p {
+  padding-top: 0;
+  padding-bottom: 4px;
 }
 .tooltip .tooltiptext {
   visibility: hidden;
@@ -312,7 +322,8 @@ h2 {
   z-index: 1;
   top: 100%;
   left: 0%;
-  margin-left: -60px;
+  margin-left: -40px;
+  font-size: smaller;
 }
 
 .tooltip .tooltiptext::after {

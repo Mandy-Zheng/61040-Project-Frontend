@@ -2,17 +2,19 @@
 import { fetchy } from "@/utils/fetchy";
 import { onBeforeMount, ref } from "vue";
 
-const props = defineProps(["postId", "isApprovalMode"]);
+const props = defineProps(["postId", "isApprovalMode", "userList"]);
 const validations = ref<Map<string, Array<any>>>(new Map());
-
+const loaded = ref<boolean>(false);
 async function getValidatorCredentials() {
+  loaded.value = false;
   try {
-    console.log("hey");
     const rawValidationData = props.isApprovalMode
       ? await fetchy(`/api/validation/approval/exclusivepost/${props.postId}`, "GET")
       : await fetchy(`/api/validation/disapproval/exclusivepost/${props.postId}`, "GET");
     const validationToField = new Map();
-    console.log(rawValidationData);
+    for (const user of props.userList) {
+      validationToField.set(user, []);
+    }
     for (const data of rawValidationData) {
       const { field } = data;
       const validators = props.isApprovalMode ? data.approvers : data.disapprovers;
@@ -24,10 +26,10 @@ async function getValidatorCredentials() {
       }
     }
     validations.value = validationToField;
-    console.log(validations.value);
   } catch (error) {
     return;
   }
+  loaded.value = true;
 }
 onBeforeMount(async () => {
   try {
@@ -41,7 +43,8 @@ onBeforeMount(async () => {
 <template>
   <div class="validation-info">
     <div class="validation-list">
-      <span v-if="validations.size > 0">
+      <i v-if="!loaded">Loading...</i>
+      <span v-else-if="validations.size > 0">
         <div class="validator" v-for="[key, val] in validations" :key="key">
           <h4>
             User: <RouterLink :to="{ path: `/searchProfiles`, query: { username: key } }"> {{ key }}</RouterLink>
@@ -51,7 +54,6 @@ onBeforeMount(async () => {
           </span>
         </div>
       </span>
-
       <i v-else>No {{ isApprovalMode ? "Approvers" : "Disapprovers" }}</i>
     </div>
   </div>

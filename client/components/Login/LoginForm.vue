@@ -16,7 +16,7 @@ async function login() {
   void updateSession();
   void resetStore();
   void getPosts();
-  void router.push({ name: "Home" });
+  await router.push({ name: "Home" });
 }
 </script>
 

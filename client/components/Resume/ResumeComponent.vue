@@ -13,8 +13,6 @@ const resumeStore = useResumeStore();
 const { getResumeValidation } = resumeStore;
 const { deleteResume, selectResumeToEdit } = resumeStore;
 const showDeleteModal = ref<boolean>(false);
-const showValidationModal = ref<boolean>(false);
-const showApprovals = ref<boolean>(true);
 const enum STATUS {
   LIKED,
   DISLIKED,
@@ -32,16 +30,6 @@ async function editResume() {
 async function confirmDeleteResume() {
   showDeleteModal.value = false;
   await deleteResume(props.resume._id);
-}
-
-function openApprovalModal() {
-  showApprovals.value = true;
-  showValidationModal.value = true;
-}
-
-function openDisapprovalModal() {
-  showApprovals.value = false;
-  showValidationModal.value = true;
 }
 
 async function approve() {
@@ -76,48 +64,52 @@ async function disapprove() {
     <div class="header">
       <div class="resumeheader">
         <div class="field">
-          <h3>{{ capitalize(props.resume.field) }}</h3>
+          <h3>
+            {{ capitalize(props.resume.field) }}
+            <p class="author">
+              User:&nbsp; <RouterLink :to="{ path: `/searchProfiles`, query: { username: props.author } }"> {{ props.author }}</RouterLink>
+            </p>
+          </h3>
+
           <div class="pill">Rating: {{ props.rating }}</div>
-          <div class="validation">
-            <div class="approvals">
-              <span @click="approve"
-                ><img v-if="likeStatus !== STATUS.LIKED" class="like" src="../../assets/images/unactivelike.svg" /> <img v-else class="like" src="../../assets/images/activelike.svg"
-              /></span>
-              <p class="information-scent tooltip">
-                ({{ props.approvals.length }})
-                <span class="tooltiptext">
-                  <div v-for="user in props.approvals.length ? props.approvals : ['No Likes']" :key="user">{{ user }}</div>
-                </span>
-              </p>
-            </div>
-            <div class="disapprovals">
-              <span @click="disapprove"
-                ><img v-if="likeStatus !== STATUS.DISLIKED" class="dislike" src="../../assets/images/unactivelike.svg" /> <img v-else class="dislike" src="../../assets/images/activelike.svg"
-              /></span>
-              <p class="information-scent tooltip">
-                ({{ props.disapprovals.length }})
-                <span class="tooltiptext">
-                  <div v-for="user in props.disapprovals.length ? props.disapprovals : ['No Dislikes']" :key="user">{{ user }}</div>
-                </span>
-              </p>
-            </div>
+        </div>
+
+        <div class="validation">
+          <div class="approvals">
+            <span @click="approve"
+              ><img v-if="likeStatus !== STATUS.LIKED" class="like" src="../../assets/images/unactivelike.svg" /> <img v-else class="like" src="../../assets/images/activelike.svg"
+            /></span>
+            <p class="information-scent tooltip">
+              ({{ props.approvals.length }})
+              <span class="tooltiptext">
+                <div v-for="user in props.approvals.length ? props.approvals : ['No Likes']" :key="user">{{ user }}</div>
+              </span>
+            </p>
+          </div>
+          <div class="disapprovals">
+            <span @click="disapprove"
+              ><img v-if="likeStatus !== STATUS.DISLIKED" class="dislike" src="../../assets/images/unactivelike.svg" /> <img v-else class="dislike" src="../../assets/images/activelike.svg"
+            /></span>
+            <p class="information-scent tooltip">
+              ({{ props.disapprovals.length }})
+              <span class="tooltiptext">
+                <div v-for="user in props.disapprovals.length ? props.disapprovals : ['No Dislikes']" :key="user">{{ user }}</div>
+              </span>
+            </p>
           </div>
         </div>
       </div>
-      <p class="author">
-        Author: <RouterLink :to="{ path: `/searchProfiles`, query: { username: props.author } }"> {{ props.author }}</RouterLink>
-      </p>
     </div>
     <div class="content">
       <!-- TODO -->
-      <div v-if="props.resume.work.length > 0 || props.resume.school.length > 0">
-        <div v-if="props.resume.work.length > 0">
+      <div class="experience" v-if="props.resume.work.length > 0 || props.resume.school.length > 0">
+        <div class="resume-content work" v-if="props.resume.work.length > 0">
           <div class="section"><b>Work</b></div>
           <div v-for="work in props.resume.work" :key="work">
             <p>{{ work }}</p>
           </div>
         </div>
-        <div v-if="props.resume.school.length > 0">
+        <div class="resume-content" v-if="props.resume.school.length > 0">
           <div class="section"><b>School</b></div>
           <div v-for="school in props.resume.school" :key="school">
             <p>{{ school }}</p>
@@ -130,8 +122,8 @@ async function disapprove() {
     </div>
     <div class="footer">
       <menu v-if="props.resume.author === currentUserId">
-        <button class="pure-button pure-button-primary edit-btn" @click="editResume" role="link">Edit</button>
-        <button class="button-error pure-button edit-btn" @click="showDeleteModal = true">Delete</button>
+        <button class="edit-btn btn" @click="editResume" role="link">Edit</button>
+        <button class="delete-btn btn" @click="showDeleteModal = true">Delete</button>
         <teleport to="body">
           <DeleteResumeModal :show="showDeleteModal" :field="props.resume.field" @close="showDeleteModal = false" @delete="confirmDeleteResume" />
         </teleport>
@@ -141,9 +133,16 @@ async function disapprove() {
 </template>
 
 <style scoped>
+* {
+  font-family: "open sans";
+}
+p {
+  margin: 0;
+  margin-top: 1em;
+}
+
 .information-scent {
   margin: 0;
-  text-decoration: underline;
   color: rgb(45, 49, 169);
   cursor: pointer;
 }
@@ -154,7 +153,7 @@ async function disapprove() {
   justify-content: space-between;
 }
 .resume {
-  width: 50%;
+  width: 90%;
   margin: auto;
   margin-top: 16px;
   margin-bottom: 16px;
@@ -162,13 +161,25 @@ async function disapprove() {
   padding-right: 8px;
 }
 
+.resume-content {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0.5em;
+}
+.experience {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+}
 .approvals,
 .disapprovals {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
-
+.approvals {
+  margin-right: 1em;
+}
 menu {
   margin: 0 0 0.5em 1.5em;
   width: 100%;
@@ -186,6 +197,7 @@ img {
 .validation {
   display: flex;
   position: relative;
+  margin-right: 2em;
 }
 .dislike {
   transform: rotate(180deg);
@@ -197,38 +209,43 @@ img {
 }
 .header {
   flex-direction: column;
-  background-color: burlywood;
+  background-color: #819fa7;
   width: 100%;
   display: flex;
   flex-wrap: wrap;
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
 }
 .field,
 .author {
   padding-left: 8px;
   display: flex;
   flex-wrap: wrap;
-  margin: 0px;
   align-items: center;
+  font-size: 16px;
+}
+.author {
+  padding-left: 0;
+  margin: 0;
+  font-weight: lighter;
 }
 
 .content {
   display: flex;
   padding: 20px 24px 4px 24px;
-  background-color: #eeeeee;
+  background-color: #f2f2f0;
 }
 .edit-btn {
   text-align: center;
-  margin-right: 8px;
+  margin-right: 2em;
 }
 .pill {
-  border: 1px solid black;
   border-radius: 12px;
   padding: 4px;
   font-weight: 50;
   margin: 0 8px;
   text-align: center;
+  background-color: #0f1b27;
+  color: #f2f2f0;
+  font-size: smaller;
 }
 
 h3 {
@@ -249,19 +266,22 @@ i {
   height: fit-content;
 }
 
+.tooltiptext {
+  width: 100px;
+  padding: 4px 0px;
+}
 .tooltip .tooltiptext {
   visibility: hidden;
-  width: fit-content;
   background-color: black;
   color: #fff;
   text-align: center;
   border-radius: 6px;
-  padding: 5px 0;
   position: absolute;
   z-index: 1;
   top: 100%;
-  left: 50%;
-  margin-left: -60px;
+  left: 0%;
+  margin-left: -40px;
+  font-size: smaller;
 }
 
 .tooltip .tooltiptext::after {
@@ -277,5 +297,26 @@ i {
 
 .tooltip:hover .tooltiptext {
   visibility: visible;
+}
+
+.edit-btn {
+  border: 2px solid #142f40;
+  background-color: #142f40;
+  color: #f2efea;
+  border-radius: 4px;
+  padding: 0.7em 1em;
+  height: fit-content;
+  align-self: flex-end;
+}
+
+.delete-btn {
+  border: 2px solid #a7382d;
+  background-color: #a7382d;
+  color: #f2efea;
+  border-radius: 4px;
+  padding: 0.7em 1em;
+  height: fit-content;
+  align-self: flex-end;
+  margin-right: 2em;
 }
 </style>

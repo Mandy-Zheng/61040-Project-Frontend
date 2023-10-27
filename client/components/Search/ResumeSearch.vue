@@ -20,22 +20,23 @@ const allUsernames = computed(() =>
     return { label: user.username, value: user.username };
   }),
 );
+const loaded = ref<boolean>(false);
 
 async function searchResume() {
+  loaded.value = false;
   try {
-    console.log(username.value);
     const query: Record<string, any> = { username: username.value ?? "", field: capitalizePhrase(field.value ?? ""), minimumRating: rating.value };
     resumeResults.value = await fetchy(`/api/resume/filter`, "GET", { query });
     validationResults.value = await Promise.all(resumeResults.value.map((resume) => fetchy(`/api/validation/resume/${resume.resume._id}`, "GET")));
   } catch (_) {
-    return;
+    loaded.value = true;
   }
+  loaded.value = true;
 }
 
 async function getAllFields() {
   try {
     const fields = await fetchy(`/api/resume/allTags`, "GET");
-    console.log(fields);
     allFields.value = fields.map((field: any) => {
       return { label: capitalizePhrase(field), value: field };
     });
@@ -45,9 +46,8 @@ async function getAllFields() {
 }
 
 onBeforeMount(async () => {
-  if (props.user) {
-    await searchResume();
-  }
+  await searchResume();
+
   await getAllFields();
 });
 </script>
@@ -66,11 +66,14 @@ onBeforeMount(async () => {
       <label>Minimum Rating:</label>
       <input class="number-inp" type="number" v-model="rating" min="0" placeholder="3.2" />
     </div>
-    <button type="submit" class="pure-button-primary pure-button search-btn" @click="searchResume">Search Resumes</button>
+    <button type="submit" class="search-btn" @click="searchResume">Search Resumes</button>
   </div>
 
   <div class="userresumes">
-    <div v-if="resumeResults.length === 0">
+    <div v-if="!loaded" class="empty">
+      <i>Loading...</i>
+    </div>
+    <div class="empty" v-else-if="resumeResults.length === 0">
       <i>No Results</i>
     </div>
     <div v-else class="resumes" v-for="(resume, index) in resumeResults" :key="resume">
@@ -88,6 +91,13 @@ onBeforeMount(async () => {
 </template>
 
 <style scoped>
+* {
+  font-family: "open sans";
+}
+i {
+  font-size: 48px;
+  color: #9c9a99;
+}
 h1,
 h2 {
   text-align: center;
@@ -117,17 +127,12 @@ h2 {
   flex-direction: row;
   flex-wrap: wrap;
 }
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-.field-pill {
-  border: 1px solid black;
-  padding: 4px;
-  border-radius: 32px;
-  margin: 8px 8px 4px 0px;
-  cursor: pointer;
-}
-.field-pill:hover {
-  background-color: #3b8ee2;
-}
 .add-btn {
   padding: 4px;
   padding-left: 8px;
@@ -156,14 +161,30 @@ h2 {
 }
 
 .search-btn {
-  font-size: small;
-  height: min-content;
+  border: 2px solid #021c41;
+  background-color: white;
+  border-radius: 4px;
+  padding: 0.7em 1em;
+  height: fit-content;
+  align-self: flex-end;
+}
+.search-btn:hover {
+  background-color: #557373;
+  color: #f2efea;
+  border: 1px solid #557373;
 }
 
 .userresumes {
   width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  margin-top: 2em;
 }
 .number-inp {
-  width: 60%;
+  padding: 0.7em;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  width: 50%;
 }
 </style>

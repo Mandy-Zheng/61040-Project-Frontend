@@ -25,7 +25,7 @@ onBeforeMount(async () => {
     <nav v-if="!isLoggedIn">
       <div class="title">
         <RouterLink :to="{ name: 'Home' }">
-          <h3>MasterLink</h3>
+          <h3 class="appname">MasterLink</h3>
         </RouterLink>
       </div>
       <ul>
@@ -65,7 +65,12 @@ onBeforeMount(async () => {
 
 <style scoped>
 @import "./assets/toast.css";
-
+.toast {
+  z-index: 100;
+}
+.appname {
+  margin-left: 1em;
+}
 .my-menu {
   border-bottom: 1px solid #819fa7;
   padding-bottom: 1em;
@@ -79,6 +84,15 @@ onBeforeMount(async () => {
   padding: 0.5em;
 }
 
+ul {
+  list-style-type: none;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 1em;
+  margin-right: 1em;
+}
 h1 {
   font-size: 2em;
   margin: 0;
@@ -113,6 +127,11 @@ body {
   margin: 0 0 1em 0;
 }
 
+nav {
+  background-color: lightgray;
+  display: flex;
+  align-items: center;
+}
 .sidenavbar {
   flex: 0 2 200px;
   background-color: #557373;

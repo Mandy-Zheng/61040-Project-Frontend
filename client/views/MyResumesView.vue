@@ -25,15 +25,13 @@ function scrollToResume(field: string) {
 <template>
   <main>
     <div class="header">
-      <h1>My Profile</h1>
-      <div class="title">
-        <h2>My Resumes</h2>
-        <div>
-          <router-link to="/createResumeForm" custom v-slot="{ navigate }">
-            <button @click="navigate" role="link" class="add-btn">Add</button>
-          </router-link>
-        </div>
-      </div>
+      <span class="title">
+        <h1>My Resumes</h1>
+        <router-link to="/createResumeForm" custom v-slot="{ navigate }">
+          <button @click="navigate" role="link" class="add-btn">Add</button>
+        </router-link>
+      </span>
+
       <div class="fields">
         <div class="field-pill" v-for="field in allResumeFields" :key="field" @click="scrollToResume(field)">
           {{ capitalize(field) }}
@@ -41,7 +39,7 @@ function scrollToResume(field: string) {
       </div>
     </div>
     <section>
-      <section>
+      <section v-if="currentUserResumes.length > 0">
         <article v-for="(resume, index) in currentUserResumes" :key="resume._id">
           <ResumeComponent
             :id="resume.resume.field"
@@ -54,6 +52,7 @@ function scrollToResume(field: string) {
           />
         </article>
       </section>
+      <section class="empty" v-else><i>You have No Resumes</i></section>
     </section>
   </main>
 </template>
@@ -62,6 +61,20 @@ function scrollToResume(field: string) {
 h1,
 h2 {
   text-align: center;
+  font-size: 36px;
+}
+i {
+  margin-top: 4em;
+  font-size: 32px;
+  color: #9c9a99;
+  padding: 1em;
+  border: 1px solid #9c9a99;
+  border-radius: 8px;
+}
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 h2 {
@@ -77,10 +90,7 @@ h2 {
 }
 .title {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
   align-items: center;
-  width: 50%;
 }
 
 .fields {
@@ -88,22 +98,37 @@ h2 {
   flex-direction: row;
   flex-wrap: wrap;
   width: 50%;
+  justify-content: center;
 }
 
 .field-pill {
-  border: 1px solid black;
+  background-color: #5b6e74;
+  border: 1px solid #5b6e74;
+  color: white;
   padding: 4px;
   border-radius: 32px;
   margin: 8px 8px 4px 0px;
   cursor: pointer;
 }
 .field-pill:hover {
-  background-color: #3b8ee2;
+  border: 1px solid #d9c4a9;
+  background-color: #d9c4a9;
+  color: black;
 }
 .add-btn {
-  padding: 4px;
-  padding-left: 8px;
-  padding-right: 8px;
-  border-radius: 16px;
+  border: 2px solid #021c41;
+  background-color: white;
+  border-radius: 4px;
+  padding: 0.5em 1em;
+  height: fit-content;
+  text-align: center;
+  justify-self: end;
+  position: absolute;
+  right: 5%;
+}
+.add-btn:hover {
+  background-color: #557373;
+  color: #f2efea;
+  border: 1px solid #557373;
 }
 </style>

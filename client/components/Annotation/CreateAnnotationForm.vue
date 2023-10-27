@@ -51,9 +51,9 @@ function getSelectedText() {
 </script>
 
 <template>
-  <form class="pure-form">
+  <form class="pure-form" @submit.prevent="props.isNewNote ? newAnnotation() : editExisting()">
     <fieldset>
-      <p>Annotating: {{ props.postTitle }}</p>
+      <p>Annotating Post: {{ props.postTitle }}</p>
       <p class="quote">Quote: <input class="pure-input" :value="quote" readonly required /></p>
       <div class="content-textbox">
         <label>Highlight the text you want to comment on!</label>
@@ -70,8 +70,7 @@ function getSelectedText() {
         <teleport to="body">
           <DeleteAnnotationModal :show="showDeleteModal" :quote="props.selectedText" :comment="props.note" @close="showDeleteModal = false" @delete="deleteAnnotation" />
         </teleport>
-        <button class="pure-button-primary pure-button" v-if="props.isNewNote" @click.prevent="newAnnotation">Submit</button>
-        <button class="pure-button-primary pure-button" v-else @click.prevent="editExisting">Submit</button>
+        <input type="submit" value="submit" class="pure-button-primary pure-button" />
       </div>
     </fieldset>
   </form>
