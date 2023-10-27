@@ -86,13 +86,13 @@ onBeforeMount(async () => {
           </h3>
           <p class="rating-pill">Rating: {{ props.rating }}</p>
           <div class="tooltip">
-            <img class="tooltip audience" src="../../assets/images/people.svg" />
+            <img class="tooltip audience" src="@/assets/images/people.svg" />
             <span class="tooltiptext">
               <p v-for="member in audience" :key="member">{{ member }}</p>
             </span>
           </div>
         </span>
-        <span v-if="props.author === currentUsername" class="edit-btn" @click="showDeleteModal = true"><img src="../../../client/assets/images/trash-can.svg" /></span>
+        <span v-if="props.author === currentUsername" class="edit-btn" @click="showDeleteModal = true"><img src="@/assets/images/trash-can.svg" /></span>
         <teleport to="body">
           <DeletePostModal :show="showDeleteModal" :title="props.post.title" @close="showDeleteModal = false" @delete="confirmDeletePost" />
         </teleport>
@@ -111,7 +111,7 @@ onBeforeMount(async () => {
         <div class="validation">
           <div class="approvals">
             <span @click="approve">
-              <img v-if="likeStatus !== STATUS.LIKED" class="like" src="@/assets/images/unactivelike.svg" /> <img v-else class="like" src="../../assets/images/activelike.svg" />
+              <img v-if="likeStatus !== STATUS.LIKED" class="like" src="@/assets/images/unactivelike.svg" /> <img v-else class="like" src="@/assets/images/activelike.svg" />
             </span>
             <p class="information-scent tooltip">
               ({{ approvals.length }})

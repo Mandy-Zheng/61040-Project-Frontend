@@ -77,7 +77,7 @@ async function disapprove() {
         <div class="validation">
           <div class="approvals">
             <span @click="approve"
-              ><img v-if="likeStatus !== STATUS.LIKED" class="like" src="@/assets/images/unactivelike.svg" /> <img v-else class="like" src="../../assets/images/activelike.svg"
+              ><img v-if="likeStatus !== STATUS.LIKED" class="like" src="@/assets/images/unactivelike.svg" /> <img v-else class="like" src="@/assets/images/activelike.svg"
             /></span>
             <p class="information-scent tooltip">
               ({{ props.approvals.length }})
@@ -88,7 +88,7 @@ async function disapprove() {
           </div>
           <div class="disapprovals">
             <span @click="disapprove"
-              ><img v-if="likeStatus !== STATUS.DISLIKED" class="dislike" src="@/assets/images/unactivelike.svg" /> <img v-else class="dislike" src="../../assets/images/activelike.svg"
+              ><img v-if="likeStatus !== STATUS.DISLIKED" class="dislike" src="@/assets/images/unactivelike.svg" /> <img v-else class="dislike" src="@/assets/images/activelike.svg"
             /></span>
             <p class="information-scent tooltip">
               ({{ props.disapprovals.length }})
